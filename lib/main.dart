@@ -22,8 +22,11 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+class _LoginPageState extends State<LoginPage>{
   final TextEditingController user = TextEditingController();
   final TextEditingController pass = TextEditingController();
   bool _valid= false;
@@ -77,8 +80,11 @@ class LoginPage extends StatelessWidget {
                                   MaterialPageRoute(builder: (context) => home()));
 
                     }).onError((error, stackTrace) {
-                      print('KHATAM BYE BYE TATA GOODUBYE GAYA!');
-                      _valid = true;
+                      setState(() {
+                        print('KHATAM BYE BYE TATA GOODUBYE GAYA!');
+                        _valid = true;
+                      });
+
                     });
                     // Add your login logic here
                   },
@@ -105,8 +111,13 @@ class LoginPage extends StatelessWidget {
               Visibility(
                   visible: _valid,
                 child: Text(
-                  'Invalid Credentials'
+                  'Invalid Credentials',
+                  style: TextStyle(
+                    color: Colors.red,
+                  ),
+
                 ),
+
 
 
               ),
