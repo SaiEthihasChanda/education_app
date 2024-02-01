@@ -61,6 +61,7 @@ class _LoginPageState extends State<LoginPage>{
                 width: 200,
                 child: TextField(
                   controller: pass,
+                  obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Password',
                     border: OutlineInputBorder(),
@@ -169,6 +170,7 @@ class SignUpPage extends StatelessWidget {
               width: 350,
               child: TextField(
                 controller: passwordController,
+                obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
                   border: OutlineInputBorder(),
