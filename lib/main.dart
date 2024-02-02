@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'uploader.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,7 +10,10 @@ void main() async {
         apiKey: "AIzaSyB-nbsgPB9gWBSS6w8QIspXPYaONyoUy3Y",
         appId: "1:372358481738:android:b81694071e633af073e3b3",
         messagingSenderId: "372358481738",
-        projectId: "educationapp-23878"),
+        projectId: "educationapp-23878",
+      storageBucket: 'educationapp-23878.appspot.com'
+
+    ),
   );
   runApp(MyApp());
 }
@@ -77,7 +81,7 @@ class _LoginPageState extends State<LoginPage>{
                     String password = pass.text;
                     FirebaseAuth.instance.signInWithEmailAndPassword(email: mail, password: password).then(
                             (value) {
-                              Navigator.push(context,
+                              Navigator.pushReplacement(context,
                                   MaterialPageRoute(builder: (context) => home()));
 
                     }).onError((error, stackTrace) {
@@ -207,8 +211,16 @@ class home extends StatelessWidget{
           child: Text('App Home'),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => Uploader()), // Assuming Uploader is the screen where you want to navigate on clicking the FAB
+          );
+        },
+        child: Icon(Icons.upload),
+        backgroundColor: Colors.blue,
+      ),
     );
-
   }
-
 }
