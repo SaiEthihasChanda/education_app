@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -183,7 +184,7 @@ class SignUpPage extends StatelessWidget {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 String email = emailController.text;
                 String username = usernameController.text;
                 String password = passwordController.text;
@@ -191,7 +192,14 @@ class SignUpPage extends StatelessWidget {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (context) => home()));
                 }
+
                 );
+                final doc = FirebaseFirestore.instance.collection('users').doc(email);
+                final json ={
+                  'username':username,
+
+                };
+                await doc.set(json);
               },
               child: Text('Create Account'),
             ),
