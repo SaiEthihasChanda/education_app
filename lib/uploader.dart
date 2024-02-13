@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:http/http.dart' as http;
 
 class Uploader extends StatefulWidget {
   @override
@@ -17,7 +19,15 @@ class Uploader extends StatefulWidget {
 class _UploaderState extends State<Uploader> {
   PlatformFile? pickedFile;
   String scanned = "";
-  FirebaseStorage storage = FirebaseStorage.instance; // Get Firebase Storage instance
+  FirebaseStorage storage =
+      FirebaseStorage.instance; // Get Firebase Storage instance
+
+  void fetchkeys(String text) async {
+    var response =
+    await http.get(Uri.parse('http://13.127.100.220 :5000/key/' + text));
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+  }
 
   Future<void> uploadFile() async {
     if (pickedFile != null) {
@@ -26,50 +36,53 @@ class _UploaderState extends State<Uploader> {
         String fileName = pickedFile!.name;
 
         Reference ref = storage.ref('uploads/$fileName');
-        if(pickedFile!.extension=='png' || pickedFile!.extension=='jpg' ){
+        if (pickedFile!.extension == 'png' ||
+            pickedFile!.extension == 'jpg') {
           final file = File(pickedFile!.path!); // Create a File object
           final image = Image.file(file);
           final inputimage = ml.InputImage.fromFilePath(pickedFile!.path!);
           final textDetector = ml.GoogleMlKit.vision.textRecognizer();
-          ml.RecognizedText recognizedText = await textDetector.processImage(inputimage);
+          ml.RecognizedText recognizedText =
+          await textDetector.processImage(inputimage);
           await textDetector.close();
           scanned = "";
-          for(ml.TextBlock block in recognizedText.blocks){
-            for(ml.TextLine lines in block.lines){
+          for (ml.TextBlock block in recognizedText.blocks) {
+            for (ml.TextLine lines in block.lines) {
               scanned = scanned + lines.text;
             }
-
           }
-
-
-        }
-        else{
+        } else {
           //Load an existing PDF document.
-          final PdfDocument document =
-          PdfDocument(inputBytes: File(pickedFile!.path!).readAsBytesSync());
-          print('RECIEVED FILE OF PAGES: '+ document.pages.count.toString());
+          final PdfDocument document = PdfDocument(
+              inputBytes: File(pickedFile!.path!).readAsBytesSync());
+          print('RECIEVED FILE OF PAGES: ' + document.pages.count.toString());
           for (int i = 0; i < document.pages.count; i++) {
             //PdfPage page = document.pages[i];
-            scanned += PdfTextExtractor(document).extractText(startPageIndex: i);
+            scanned +=
+                PdfTextExtractor(document).extractText(startPageIndex: i);
           }
-//Extract the text from all the pages.
+          //Extract the text from all the pages.
           //scanned = PdfTextExtractor(document).extractText();
+
           print(scanned);
-//Dispose the document.
+          //Dispose the document.
           document.dispose();
         }
+
+        fetchkeys(scanned);
+
         SettableMetadata metadata = SettableMetadata(
-          contentType: pickedFile!.extension, // You can set content type dynamically based on the file type
+          contentType: pickedFile!
+              .extension, // You can set content type dynamically based on the file type
           customMetadata: {
             'uploaded-by': 'Flutter User',
             'file-name': pickedFile!.name ?? '',
             'content': scanned
           },
-
         );
 
         // Upload the file
-        await ref.putFile(File(pickedFile!.path!),metadata);
+        await ref.putFile(File(pickedFile!.path!), metadata);
 
         debugPrint('File uploaded successfully to: $ref.fullPath');
       } catch (error) {
@@ -127,7 +140,8 @@ class _UploaderState extends State<Uploader> {
   @override
   void initState() {
     super.initState();
-    Firebase.initializeApp().then((value) => debugPrint('Firebase initialized'));
+    Firebase.initializeApp()
+        .then((value) => debugPrint('Firebase initialized'));
   }
 
   @override
@@ -136,23 +150,46 @@ class _UploaderState extends State<Uploader> {
       appBar: AppBar(
         title: Text('Uploader'),
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: selectFile,
-              child: Text('Select File'),
-            ),
-            ElevatedButton(
-              onPressed: uploadFile,
-              child: Text('Upload!'),
-            ),
-            if (pickedFile != null && pickedFile!.name != null)
-              Text(
-                'Selected File: ${pickedFile!.name}',
-                style: TextStyle(fontSize: 16),
+            SizedBox(
+              height: MediaQuery.of(context).size.height / 2,
+              child: Center(
+                child: pickedFile != null
+                    ? pickedFile!.extension == 'png' ||
+                    pickedFile!.extension == 'jpg'
+                    ? Image.file(
+                  File(pickedFile!.path!),
+                  fit: BoxFit.cover,
+                )
+                    : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.insert_drive_file),
+                    SizedBox(height: 8),
+                    Text(
+                      pickedFile!.name!,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                )
+                    : Text('No file selected'),
               ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: selectFile,
+                  child: Text('Select File'),
+                ),
+                ElevatedButton(
+                  onPressed: uploadFile,
+                  child: Text('Upload!'),
+                ),
+              ],
+            ),
           ],
         ),
       ),

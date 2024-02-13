@@ -12,7 +12,7 @@ void main() async {
         appId: "1:372358481738:android:b81694071e633af073e3b3",
         messagingSenderId: "372358481738",
         projectId: "educationapp-23878",
-      storageBucket: 'educationapp-23878.appspot.com'
+        storageBucket: 'educationapp-23878.appspot.com'
 
     ),
   );
@@ -82,10 +82,10 @@ class _LoginPageState extends State<LoginPage>{
                     String password = pass.text;
                     FirebaseAuth.instance.signInWithEmailAndPassword(email: mail, password: password).then(
                             (value) {
-                              Navigator.pushReplacement(context,
-                                  MaterialPageRoute(builder: (context) => home()));
+                          Navigator.pushReplacement(context,
+                              MaterialPageRoute(builder: (context) => home()));
 
-                    }).onError((error, stackTrace) {
+                        }).onError((error, stackTrace) {
                       setState(() {
                         print('KHATAM BYE BYE TATA GOODUBYE GAYA!');
                         _valid = true;
@@ -115,7 +115,7 @@ class _LoginPageState extends State<LoginPage>{
               ),
               SizedBox(height: 20),
               Visibility(
-                  visible: _valid,
+                visible: _valid,
                 child: Text(
                   'Invalid Credentials',
                   style: TextStyle(
@@ -219,16 +219,59 @@ class home extends StatelessWidget{
           child: Text('App Home'),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => Uploader()), // Assuming Uploader is the screen where you want to navigate on clicking the FAB
-          );
+      body: _buildHomeContent(),
+      bottomNavigationBar: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage),
+            label: 'Storage',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.upload),
+            label: 'Upload',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 0,
+        selectedItemColor: Colors.blue,
+        onTap: (int index) {
+          switch(index) {
+            case 0:
+            // Add logic to navigate to the home page
+              break;
+            case 1:
+            // Add logic to navigate to the storage page
+              break;
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Uploader()),
+              );
+              break;
+            case 3:
+            // Add logic to navigate to the profile page
+              break;
+          }
         },
-        child: Icon(Icons.upload),
-        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  Widget _buildHomeContent() {
+    return Center(
+      child: Text(
+        'Home Page Content',
+        style: TextStyle(fontSize: 24),
       ),
     );
   }
 }
+
