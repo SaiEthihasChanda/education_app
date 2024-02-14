@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_ml_kit/google_ml_kit.dart' as ml;
 import 'package:permission_handler/permission_handler.dart';
@@ -19,65 +20,72 @@ class Uploader extends StatefulWidget {
 class _UploaderState extends State<Uploader> {
   PlatformFile? pickedFile;
   String scanned = "";
+  List<String> tags = [];
+  TextEditingController customTagController = TextEditingController();
+  bool loading = false;
   FirebaseStorage storage =
       FirebaseStorage.instance; // Get Firebase Storage instance
 
-  void fetchkeys(String text) async {
-    var response =
-    await http.get(Uri.parse('http://13.127.100.220 :5000/key/' + text));
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+  Future<List<String>> fetchkeys(String text) async {
+    List<String> result = [];
+    // Encode the text data as JSON
+    String requestBody = jsonEncode({'content': text});
+    try {
+      var response = await http.post(
+        Uri.parse('http://65.0.32.85:5000/key'),
+        body: requestBody,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      ).timeout(const Duration(seconds: 3));
+      print('Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        // Decode JSON response body into a list
+        List<dynamic> keyList = jsonDecode(response.body);
+        result = List<String>.from(keyList);
+      } else {
+        print('Failed to fetch keys. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error sending request: $error');
+    }
+    return result;
+  }
+
+  void addCustomTag(String tag) {
+    if (tag.isNotEmpty) {
+      setState(() {
+        tags.add(tag);
+        customTagController.clear();
+      });
+    }
+  }
+
+  void deleteTag(String tag) {
+    setState(() {
+      tags.remove(tag);
+    });
   }
 
   Future<void> uploadFile() async {
+    setState(() {
+      loading = true;
+    });
     if (pickedFile != null) {
       try {
         // Create a reference to the upload location in Firebase Storage
         String fileName = pickedFile!.name;
 
         Reference ref = storage.ref('uploads/$fileName');
-        if (pickedFile!.extension == 'png' ||
-            pickedFile!.extension == 'jpg') {
-          final file = File(pickedFile!.path!); // Create a File object
-          final image = Image.file(file);
-          final inputimage = ml.InputImage.fromFilePath(pickedFile!.path!);
-          final textDetector = ml.GoogleMlKit.vision.textRecognizer();
-          ml.RecognizedText recognizedText =
-          await textDetector.processImage(inputimage);
-          await textDetector.close();
-          scanned = "";
-          for (ml.TextBlock block in recognizedText.blocks) {
-            for (ml.TextLine lines in block.lines) {
-              scanned = scanned + lines.text;
-            }
-          }
-        } else {
-          //Load an existing PDF document.
-          final PdfDocument document = PdfDocument(
-              inputBytes: File(pickedFile!.path!).readAsBytesSync());
-          print('RECIEVED FILE OF PAGES: ' + document.pages.count.toString());
-          for (int i = 0; i < document.pages.count; i++) {
-            //PdfPage page = document.pages[i];
-            scanned +=
-                PdfTextExtractor(document).extractText(startPageIndex: i);
-          }
-          //Extract the text from all the pages.
-          //scanned = PdfTextExtractor(document).extractText();
-
-          print(scanned);
-          //Dispose the document.
-          document.dispose();
-        }
-
-        fetchkeys(scanned);
-
+        List<String> keywords = await fetchkeys(scanned);
         SettableMetadata metadata = SettableMetadata(
           contentType: pickedFile!
               .extension, // You can set content type dynamically based on the file type
           customMetadata: {
             'uploaded-by': 'Flutter User',
             'file-name': pickedFile!.name ?? '',
-            'content': scanned
+            'tags': jsonEncode(tags),
           },
         );
 
@@ -88,8 +96,15 @@ class _UploaderState extends State<Uploader> {
       } catch (error) {
         debugPrint('Error uploading file: $error');
         // Handle upload errors gracefully, provide user feedback
+      } finally {
+        setState(() {
+          loading = false;
+        });
       }
     } else {
+      setState(() {
+        loading = false;
+      });
       debugPrint('Please select a file first.');
       // Inform the user to select a file
     }
@@ -106,6 +121,39 @@ class _UploaderState extends State<Uploader> {
         if (result != null) {
           setState(() {
             pickedFile = result.files.first;
+            scanned = ""; // Reset scanned text when new file selected
+          });
+
+          if (pickedFile!.extension == 'png' || pickedFile!.extension == 'jpg') {
+            final file = File(pickedFile!.path!); // Create a File object
+            final image = Image.file(file);
+            final inputimage = ml.InputImage.fromFilePath(pickedFile!.path!);
+            final textDetector = ml.GoogleMlKit.vision.textRecognizer();
+            ml.RecognizedText recognizedText =
+            await textDetector.processImage(inputimage);
+            await textDetector.close();
+            for (ml.TextBlock block in recognizedText.blocks) {
+              for (ml.TextLine lines in block.lines) {
+                setState(() {
+                  scanned += lines.text;
+                });
+              }
+            }
+          } else {
+            //Load an existing PDF document.
+            final PdfDocument document =
+            PdfDocument(inputBytes: File(pickedFile!.path!).readAsBytesSync());
+            for (int i = 0; i < document.pages.count; i++) {
+              scanned += PdfTextExtractor(document).extractText(startPageIndex: i);
+            }
+            //Dispose the document.
+            document.dispose();
+          }
+
+          // Fetch keywords/tags
+          List<String> fetchedTags = await fetchkeys(scanned);
+          setState(() {
+            tags = fetchedTags;
           });
         }
       } catch (error) {
@@ -140,8 +188,7 @@ class _UploaderState extends State<Uploader> {
   @override
   void initState() {
     super.initState();
-    Firebase.initializeApp()
-        .then((value) => debugPrint('Firebase initialized'));
+    Firebase.initializeApp().then((value) => debugPrint('Firebase initialized'));
   }
 
   @override
@@ -157,8 +204,7 @@ class _UploaderState extends State<Uploader> {
               height: MediaQuery.of(context).size.height / 2,
               child: Center(
                 child: pickedFile != null
-                    ? pickedFile!.extension == 'png' ||
-                    pickedFile!.extension == 'jpg'
+                    ? pickedFile!.extension == 'png' || pickedFile!.extension == 'jpg'
                     ? Image.file(
                   File(pickedFile!.path!),
                   fit: BoxFit.cover,
@@ -190,9 +236,76 @@ class _UploaderState extends State<Uploader> {
                 ),
               ],
             ),
+            SizedBox(height: 20),
+            loading ? CircularProgressIndicator() : SizedBox(),
+            SizedBox(height: 10),
+            loading ? SizedBox() : Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Tags:',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: tags
+                      .map(
+                        (tag) => TagWidget(
+                      tag: tag,
+                      onDelete: () => deleteTag(tag),
+                    ),
+                  )
+                      .toList(),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: customTagController,
+                        decoration: InputDecoration(
+                          hintText: 'Add Custom Tag',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: () => addCustomTag(customTagController.text),
+                      child: Text('Add'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class TagWidget extends StatelessWidget {
+  final String tag;
+  final VoidCallback onDelete;
+
+  const TagWidget({
+    required this.tag,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(tag),
+      deleteIcon: Icon(Icons.clear),
+      onDeleted: onDelete,
     );
   }
 }
