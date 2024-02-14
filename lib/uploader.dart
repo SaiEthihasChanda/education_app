@@ -11,6 +11,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:http/http.dart' as http;
+import 'package:test_flutter_1/main.dart';
 
 class Uploader extends StatefulWidget {
   @override
@@ -99,11 +100,20 @@ class _UploaderState extends State<Uploader> {
       } finally {
         setState(() {
           loading = false;
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => home()),
+          );
+
         });
       }
     } else {
       setState(() {
         loading = false;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => home()),
+        );
       });
       debugPrint('Please select a file first.');
       // Inform the user to select a file
