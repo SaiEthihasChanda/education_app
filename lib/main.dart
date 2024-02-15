@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+
 import 'uploader.dart';
+import 'User.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
@@ -230,10 +233,21 @@ class _SignUpPageState extends State<SignUpPage> {
         password: password,
       );
 
+      // Upload profile picture to Firebase Storage
+      String profilePicId = DateTime.now().millisecondsSinceEpoch.toString();
+      // Generate unique ID for profile picture
+      String profilePicPath = 'pfps/$profilePicId';
+      SettableMetadata metadata = SettableMetadata(
+        contentType: pickedFile!
+            .extension, // You can set content type dynamically based on the file type
+
+      );
+      await FirebaseStorage.instance.ref(profilePicPath).putFile(_profilePic!,metadata);
+
       final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
       final userData = {
         'username': username,
-        'profilepic': _profilePicName,
+        'profilepic': profilePicId,
         'type': _userType,
       };
       await userDoc.set(userData);
@@ -264,10 +278,16 @@ class _SignUpPageState extends State<SignUpPage> {
           final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
           final userData = {
             'username': username,
-            'profilepic': _profilePicName,
+            'profilepic': profilePicId,
             'type': _userType,
           };
           await userDoc.set(userData);
+          SettableMetadata metadata = SettableMetadata(
+            contentType: pickedFile!
+                .extension, // You can set content type dynamically based on the file type
+
+          );
+          await FirebaseStorage.instance.ref(profilePicPath).putFile(_profilePic!,metadata);
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => home()),
@@ -443,7 +463,10 @@ class home extends StatelessWidget{
               );
               break;
             case 3:
-            // Add logic to navigate to the profile page
+            Navigator.push(
+                             context,
+                           MaterialPageRoute(builder: (context) => UserProfilePage()),
+                           );
               break;
           }
         },
