@@ -30,7 +30,15 @@ class _UploaderState extends State<Uploader> {
   Future<List<String>> fetchkeys(String text) async {
     List<String> result = [];
     // Encode the text data as JSON
-    String requestBody = jsonEncode({'content': text});
+    String prompt = "UNDERSTAND the following text "
+        "and give me a set of the top 10 most relevant keywords are related to the content"
+        "and best describe it ."
+        "if required generate more keywords for accuracy but dont go overboard. "
+        "the keywords must be unique as they would be used to search up this text. "
+        "give me the comma seperated list of the keywords  and say nothing else but "
+        "the list.. dont give me any other response. the text is as follows"
+        "         \n\n\n"+text;
+    String requestBody = jsonEncode({'content': prompt});
     try {
       var response = await http.post(
         Uri.parse('http://65.0.32.85:5000/key'),
@@ -38,7 +46,7 @@ class _UploaderState extends State<Uploader> {
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
-      ).timeout(const Duration(seconds: 3));
+      ).timeout(const Duration(seconds: 15));
       print('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
@@ -92,6 +100,22 @@ class _UploaderState extends State<Uploader> {
 
         // Upload the file
         await ref.putFile(File(pickedFile!.path!), metadata);
+        final doc = FirebaseFirestore.instance.collection('docs').doc(pickedFile!.name);
+        final json ={
+          "tag1":tags[0],
+          "tag2":tags[1],
+          "tag3":tags[2],
+          "tag4":tags[3],
+          "tag5":tags[4],
+          "tag6":tags[5],
+          "tag7":tags[6],
+          "tag8":tags[7],
+          "tag9":tags[8],
+          "tag10":tags[9],
+
+
+        };
+        await doc.set(json);
 
         debugPrint('File uploaded successfully to: $ref.fullPath');
       } catch (error) {
@@ -121,6 +145,10 @@ class _UploaderState extends State<Uploader> {
   }
 
   Future<void> selectFile() async {
+    setState(() {
+      loading = true; // Start loading animation
+    });
+
     // Request storage permission
     final status = await Permission.storage.request();
 
@@ -151,10 +179,11 @@ class _UploaderState extends State<Uploader> {
             }
           } else {
             //Load an existing PDF document.
-            final PdfDocument document =
-            PdfDocument(inputBytes: File(pickedFile!.path!).readAsBytesSync());
+            final PdfDocument document = PdfDocument(
+                inputBytes: File(pickedFile!.path!).readAsBytesSync());
             for (int i = 0; i < document.pages.count; i++) {
-              scanned += PdfTextExtractor(document).extractText(startPageIndex: i);
+              scanned +=
+                  PdfTextExtractor(document).extractText(startPageIndex: i);
             }
             //Dispose the document.
             document.dispose();
@@ -169,6 +198,11 @@ class _UploaderState extends State<Uploader> {
       } catch (error) {
         // Handle potential errors with file selection
         debugPrint('Error selecting file: $error');
+      } finally {
+        // Stop loading animation
+        setState(() {
+          loading = false;
+        });
       }
     } else {
       // Handle permission denial
@@ -192,6 +226,10 @@ class _UploaderState extends State<Uploader> {
           ],
         ),
       );
+      // Stop loading animation
+      setState(() {
+        loading = false;
+      });
     }
   }
 
