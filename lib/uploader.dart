@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
@@ -24,6 +25,7 @@ class _UploaderState extends State<Uploader> {
   List<String> tags = [];
   TextEditingController customTagController = TextEditingController();
   bool loading = false;
+  String _type = "";
   FirebaseStorage storage =
       FirebaseStorage.instance; // Get Firebase Storage instance
 
@@ -97,6 +99,17 @@ class _UploaderState extends State<Uploader> {
             'tags': jsonEncode(tags),
           },
         );
+        final FirebaseAuth _auth = FirebaseAuth.instance;
+        User _user = _auth.currentUser!;
+        DocumentSnapshot snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user.email)
+            .get();
+        if (snapshot.exists){
+          setState(() {
+            _type = snapshot['type'];
+          });
+        }
 
         // Upload the file
         await ref.putFile(File(pickedFile!.path!), metadata);

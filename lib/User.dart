@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart' as storage;
+import 'main.dart';
 
 class UserProfilePage extends StatefulWidget {
   @override
@@ -14,15 +14,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
   late User _user;
   String _username = '';
   String _profileImageUrl = '';
+  String _type = "";
 
   @override
-  Future<void> initState() async {
+  void initState() {
     super.initState();
     _getUserInfo();
-
   }
 
-  void _getUserInfo() async {
+  Future<void> _getUserInfo() async {
     _user = _auth.currentUser!;
     DocumentSnapshot snapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -30,10 +30,18 @@ class _UserProfilePageState extends State<UserProfilePage> {
         .get();
     if (snapshot.exists) {
       setState(() {
-        _username = snapshot['username']; // Retrieve username from Firestore
-
-        _profileImageUrl = snapshot['profilepic'];
-
+        _username = snapshot['username'];
+        _type = snapshot['type'];
+        String _profileImage = snapshot['profilepic'];
+        storage.Reference ref =
+        storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
+        ref.getDownloadURL().then((url) {
+          setState(() {
+            _profileImageUrl = url;
+          });
+        }).catchError((error) {
+          print('Error getting download URL: $error');
+        });
       });
     }
   }
@@ -46,25 +54,45 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ),
       body: _user != null
           ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.1,
-            ), // Center top position
-            CircleAvatar(
-              radius: 80, // Increase the size of the profile picture
-
-              backgroundImage:  NetworkImage(_profileImageUrl) // Use profile image from URL if available
-
-            ),
-            SizedBox(height: 20),
-            Text(
-              _username,
-              style: TextStyle(fontSize: 18),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 80,
+                backgroundImage: NetworkImage(_profileImageUrl),
+              ),
+              SizedBox(height: 20),
+              Text(
+                _username,
+                style: TextStyle(fontSize: 24),
+              ),
+              SizedBox(height: 10),
+              Text(
+                "Email: ${_auth.currentUser!.email}",
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 10),
+              Text(
+                "Account Type: $_type",
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () async {
+                  await _auth.signOut();
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginPage()),
+                        (route) => false,
+                  );
+                },
+                child: Text('Sign out'),
+              ),
+            ],
+          ),
         ),
       )
           : Center(

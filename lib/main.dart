@@ -416,61 +416,135 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 }
 
-class home extends StatelessWidget{
+
+
+class home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Center(
-          child: Text('App Home'),
-        ),
-      ),
-      body: _buildHomeContent(),
-      bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.storage),
-            label: 'Storage',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.upload),
-            label: 'Upload',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 0,
-        selectedItemColor: Colors.blue,
-        onTap: (int index) {
-          switch(index) {
-            case 0:
-            // Add logic to navigate to the home page
-              break;
-            case 1:
-            // Add logic to navigate to the storage page
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Uploader()),
-              );
-              break;
-            case 3:
-            Navigator.push(
-                             context,
-                           MaterialPageRoute(builder: (context) => UserProfilePage()),
-                           );
-              break;
+    return FutureBuilder<String>(
+      future: _getUserInfo(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // While waiting for the future to complete, show a loading indicator
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          // If an error occurs, display an error message
+          return Text('Error: ${snapshot.error}');
+        } else {
+          // If the future completes successfully, build the UI based on the retrieved data
+          final userType = snapshot.data ?? 'student'; // Default value if data is null
+          if (userType == "contributor") {
+            return Scaffold(
+              appBar: AppBar(
+                title: Text('App Home'),
+              ),
+              body: _buildHomeContent(),
+              bottomNavigationBar: BottomNavigationBar(
+                items: <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    label: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.storage),
+                    label: 'Storage',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.upload),
+                    label: 'Upload',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: 'Profile',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.search),  // New search icon
+                    label: 'Search',
+                  ),
+                ],
+                type: BottomNavigationBarType.fixed,
+                currentIndex: 0,
+                selectedItemColor: Colors.blue,
+                onTap: (int index) {
+                  switch (index) {
+                    case 0:
+                    // Add logic to navigate to the home page
+                      break;
+                    case 1:
+                    // Add logic to navigate to the storage page
+                      break;
+                    case 2:
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => Uploader()),
+                      );
+                      break;
+                    case 3:
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => UserProfilePage()),
+                      );
+                      break;
+                    case 4:  // Search button tapped
+                    // Add logic to navigate to the search page
+                      break;
+                  }
+                },
+              ),
+            );
+          } else {
+            // If the user is not a contributor, you can return a different UI here
+            return Scaffold(
+              appBar: AppBar(
+                title: Text('App Home'),
+              ),
+              body: _buildHomeContent(),
+              bottomNavigationBar: BottomNavigationBar(
+                items: <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    label: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.storage),
+                    label: 'Storage',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: 'Profile',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.search),  // New search icon
+                    label: 'Search',
+                  ),
+                ],
+                type: BottomNavigationBarType.fixed,
+                currentIndex: 0,
+                selectedItemColor: Colors.blue,
+                onTap: (int index) {
+                  switch (index) {
+                    case 0:
+                    // Add logic to navigate to the home page
+                      break;
+                    case 1:
+                    // Add logic to navigate to the storage page
+                      break;
+                    case 2:
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => UserProfilePage()),
+                      );
+                      break;
+                    case 3:
+                      //search
+
+                  }
+                },
+              ),
+            );
           }
-        },
-      ),
+        }
+      },
     );
   }
 
@@ -483,3 +557,23 @@ class home extends StatelessWidget{
     );
   }
 }
+
+Future<String> _getUserInfo() async {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final User _user = _auth.currentUser!;
+  final DocumentSnapshot snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(_user.email)
+      .get();
+  if (snapshot.exists) {
+    return snapshot['type'].toString();
+  } else {
+    return 'student'; // Default value if user data doesn't exist
+  }
+}
+
+
+
+
+
+
