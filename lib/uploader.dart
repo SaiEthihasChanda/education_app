@@ -114,20 +114,10 @@ class _UploaderState extends State<Uploader> {
         // Upload the file
         await ref.putFile(File(pickedFile!.path!), metadata);
         final doc = FirebaseFirestore.instance.collection('docs').doc(pickedFile!.name);
-        final json ={
-          "tag1":tags[0],
-          "tag2":tags[1],
-          "tag3":tags[2],
-          "tag4":tags[3],
-          "tag5":tags[4],
-          "tag6":tags[5],
-          "tag7":tags[6],
-          "tag8":tags[7],
-          "tag9":tags[8],
-          "tag10":tags[9],
-
-
+        final json = {
+          "tags": tags,
         };
+
         await doc.set(json);
 
         debugPrint('File uploaded successfully to: $ref.fullPath');

@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import 'uploader.dart';
 import 'User.dart';
+import 'search.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
@@ -486,7 +487,10 @@ class home extends StatelessWidget {
                       );
                       break;
                     case 4:  // Search button tapped
-                    // Add logic to navigate to the search page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SearchWidget()),
+                      );
                       break;
                   }
                 },
@@ -536,7 +540,11 @@ class home extends StatelessWidget {
                       );
                       break;
                     case 3:
-                      //search
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SearchWidget()),
+                      );
+                      break;
 
                   }
                 },
