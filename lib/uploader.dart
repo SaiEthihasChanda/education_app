@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_ml_kit/google_ml_kit.dart' as ml;
 import 'package:permission_handler/permission_handler.dart';
@@ -12,7 +11,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:http/http.dart' as http;
-import 'package:test_flutter_1/main.dart';
+import 'main.dart';
 
 class Uploader extends StatefulWidget {
   @override
@@ -20,20 +19,20 @@ class Uploader extends StatefulWidget {
 }
 
 class _UploaderState extends State<Uploader> {
+
+
   PlatformFile? pickedFile;
   String scanned = "";
   List<String> tags = [];
   TextEditingController customTagController = TextEditingController();
+  TextEditingController titleController = TextEditingController();
   bool loading = false;
   String _type = "";
-  FirebaseStorage storage =
-      FirebaseStorage.instance; // Get Firebase Storage instance
 
   Future<List<String>> fetchkeys(String text) async {
     List<String> result = [];
-    // Encode the text data as JSON
     String prompt = "UNDERSTAND the following text "
-        "and give me a set of the top 10 most relevant keywords are related to the content"
+        "and give me a set of the top 20 most relevant keywords are related to the content"
         "and best describe it ."
         "if required generate more keywords for accuracy but dont go overboard. "
         "the keywords must be unique as they would be used to search up this text. "
@@ -54,7 +53,11 @@ class _UploaderState extends State<Uploader> {
       if (response.statusCode == 200) {
         // Decode JSON response body into a list
         List<dynamic> keyList = jsonDecode(response.body);
-        result = List<String>.from(keyList);
+        for (String tag in keyList) {
+          // Split tags containing multiple words into individual tags
+          List<String> splitTags = tag.split(" ").where((t) => t.isNotEmpty).toList();
+          result.addAll(splitTags);
+        }
       } else {
         print('Failed to fetch keys. Status code: ${response.statusCode}');
       }
@@ -67,7 +70,7 @@ class _UploaderState extends State<Uploader> {
   void addCustomTag(String tag) {
     if (tag.isNotEmpty) {
       setState(() {
-        tags.add(tag);
+        tags.addAll(tag.split(" "));
         customTagController.clear();
       });
     }
@@ -80,61 +83,74 @@ class _UploaderState extends State<Uploader> {
   }
 
   Future<void> uploadFile() async {
+    if (pickedFile == null || titleController.text.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Missing Information"),
+            content: Text("Please select a file and enter a title."),
+            actions: <Widget>[
+              TextButton(
+                child: Text("OK"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
     setState(() {
       loading = true;
     });
-    if (pickedFile != null) {
-      try {
-        // Create a reference to the upload location in Firebase Storage
-        String fileName = pickedFile!.name;
 
-        Reference ref = storage.ref('uploads/$fileName');
-        List<String> keywords = await fetchkeys(scanned);
-        SettableMetadata metadata = SettableMetadata(
-          contentType: pickedFile!
-              .extension, // You can set content type dynamically based on the file type
-          customMetadata: {
-            'uploaded-by': 'Flutter User',
-            'file-name': pickedFile!.name ?? '',
-            'tags': jsonEncode(tags),
-          },
-        );
-        final FirebaseAuth _auth = FirebaseAuth.instance;
-        User _user = _auth.currentUser!;
-        DocumentSnapshot snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_user.email)
-            .get();
-        if (snapshot.exists){
-          setState(() {
-            _type = snapshot['type'];
-          });
-        }
-
-        // Upload the file
-        await ref.putFile(File(pickedFile!.path!), metadata);
-        final doc = FirebaseFirestore.instance.collection('docs').doc(pickedFile!.name);
-        final json = {
-          "tags": tags,
-        };
-
-        await doc.set(json);
-
-        debugPrint('File uploaded successfully to: $ref.fullPath');
-      } catch (error) {
-        debugPrint('Error uploading file: $error');
-        // Handle upload errors gracefully, provide user feedback
-      } finally {
+    try {
+      String fileName = pickedFile!.name;
+      final FirebaseAuth _auth = FirebaseAuth.instance;
+      User _user = _auth.currentUser!;
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user.email)
+          .get();
+      if (snapshot.exists){
         setState(() {
-          loading = false;
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => home()),
-          );
-
+          _type = snapshot['type'];
         });
       }
-    } else {
+
+      Reference ref = FirebaseStorage.instance.ref('uploads/$fileName');
+      List<String> keywords = await fetchkeys(scanned);
+      DateTime today = DateTime.now();
+      print("todays date is: $today");
+      SettableMetadata metadata = SettableMetadata(
+        contentType: pickedFile!.extension,
+        customMetadata: {
+          'uploaded-by': snapshot['username'],
+          'file-name': pickedFile!.name ?? '',
+          'tags': jsonEncode(tags),
+          'title': titleController.text,
+          'date':''
+        },
+      );
+
+
+      await ref.putFile(File(pickedFile!.path!), metadata);
+      final doc = FirebaseFirestore.instance.collection('docs').doc(pickedFile!.name);
+      final json = {
+        "tags": tags,
+        "title": titleController.text,
+      };
+
+      await doc.set(json);
+
+      debugPrint('File uploaded successfully to: $ref.fullPath');
+    } catch (error) {
+      debugPrint('Error uploading file: $error');
+    } finally {
       setState(() {
         loading = false;
         Navigator.push(
@@ -142,32 +158,23 @@ class _UploaderState extends State<Uploader> {
           MaterialPageRoute(builder: (context) => home()),
         );
       });
-      debugPrint('Please select a file first.');
-      // Inform the user to select a file
     }
   }
 
   Future<void> selectFile() async {
-    setState(() {
-      loading = true; // Start loading animation
-    });
-
-    // Request storage permission
     final status = await Permission.storage.request();
 
     if (status.isGranted) {
-      // Permission granted, proceed with file selection
       try {
         FilePickerResult? result = await FilePicker.platform.pickFiles();
         if (result != null) {
           setState(() {
             pickedFile = result.files.first;
-            scanned = ""; // Reset scanned text when new file selected
+            scanned = "";
           });
 
           if (pickedFile!.extension == 'png' || pickedFile!.extension == 'jpg') {
-            final file = File(pickedFile!.path!); // Create a File object
-            final image = Image.file(file);
+            final file = File(pickedFile!.path!);
             final inputimage = ml.InputImage.fromFilePath(pickedFile!.path!);
             final textDetector = ml.GoogleMlKit.vision.textRecognizer();
             ml.RecognizedText recognizedText =
@@ -181,65 +188,47 @@ class _UploaderState extends State<Uploader> {
               }
             }
           } else {
-            //Load an existing PDF document.
             final PdfDocument document = PdfDocument(
                 inputBytes: File(pickedFile!.path!).readAsBytesSync());
             for (int i = 0; i < document.pages.count; i++) {
               scanned +=
                   PdfTextExtractor(document).extractText(startPageIndex: i);
             }
-            //Dispose the document.
             document.dispose();
           }
 
-          // Fetch keywords/tags
           List<String> fetchedTags = await fetchkeys(scanned);
           setState(() {
             tags = fetchedTags;
           });
         }
       } catch (error) {
-        // Handle potential errors with file selection
         debugPrint('Error selecting file: $error');
-      } finally {
-        // Stop loading animation
-        setState(() {
-          loading = false;
-        });
       }
     } else {
-      // Handle permission denial
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Storage Permission Required'),
-          content: Text(
-            'This app needs access to your storage to upload files. '
-                'Please grant permission in the app settings.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => openAppSettings(),
-              child: Text('Open Settings'),
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Storage Permission Required"),
+            content: Text(
+              'This app needs access to your storage to upload files. '
+                  'Please grant permission in the app settings.',
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-          ],
-        ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => openAppSettings(),
+                child: Text('Open Settings'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel'),
+              ),
+            ],
+          );
+        },
       );
-      // Stop loading animation
-      setState(() {
-        loading = false;
-      });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    Firebase.initializeApp().then((value) => debugPrint('Firebase initialized'));
   }
 
   @override
@@ -286,6 +275,14 @@ class _UploaderState extends State<Uploader> {
                   child: Text('Upload!'),
                 ),
               ],
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                hintText: 'Enter Document Title',
+                border: OutlineInputBorder(),
+              ),
             ),
             SizedBox(height: 20),
             loading ? CircularProgressIndicator() : SizedBox(),

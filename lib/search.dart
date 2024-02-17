@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as storage;
+import 'package:intl/intl.dart'; // Import the intl package to format dates
 
 void main() {
   runApp(MaterialApp(
@@ -43,7 +44,7 @@ class _SearchWidgetState extends State<SearchWidget> {
         _type = snapshot['type'];
         String _profileImage = snapshot['profilepic'];
         storage.Reference ref =
-        storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
+            storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
         ref.getDownloadURL().then((url) {
           setState(() {
             _profileImageUrl = url;
@@ -56,31 +57,52 @@ class _SearchWidgetState extends State<SearchWidget> {
   }
 
   Future<void> _search() async {
-    String searchText = _searchController.text;
+    String searchText = _searchController.text
+        .toLowerCase(); // Convert search query to lowercase
     List<String> tags = searchText.split(" ");
     print(tags);
 
-    Query query = FirebaseFirestore.instance.collection('docs');
-
-    // Assuming each document has a field named 'tags' which is an array containing all the tags
-    query = query.where('tags', arrayContainsAny: tags);
-
     try {
-      QuerySnapshot querySnapshot = await query.get();
-      List<String> matchingDocumentIds = [];
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('docs').get();
+      Map<String, dynamic> documentDictionary = {};
       for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
-        matchingDocumentIds.add(documentSnapshot.id);
+        documentDictionary[documentSnapshot.id] = documentSnapshot.data();
       }
-      print(matchingDocumentIds);
+
+      List<String> matchingDocuments = [];
+      for (String documentId in documentDictionary.keys) {
+        Map<String, dynamic> documentData = documentDictionary[documentId];
+        List<String> documentTags =
+            List<String>.from(documentData['tags'] ?? []);
+        String title = documentData['title'] ??
+            ''; // Get the title from the document data with null check
+
+        bool anyTagMatches = false;
+        for (String tag in tags) {
+          // Remove leading and trailing whitespace from document tags and convert to lowercase
+          List<String> trimmedTags =
+              documentTags.map((t) => t.trim().toLowerCase()).toList();
+          if (trimmedTags.contains(tag)) {
+            anyTagMatches = true;
+            break;
+          }
+        }
+
+        if (anyTagMatches && title.isNotEmpty) {
+          matchingDocuments.add(
+              title); // Append the title to matching documents if it's not null or empty
+        }
+      }
+
+      print("Matching Documents: $matchingDocuments");
       setState(() {
-        _searchResults = matchingDocumentIds;
+        _searchResults = matchingDocuments;
       });
     } catch (error) {
-      print("Failed to search: $error");
+      print("Failed to fetch documents: $error");
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -115,36 +137,119 @@ class _SearchWidgetState extends State<SearchWidget> {
             Expanded(
               child: _searchResults.isNotEmpty
                   ? ListView.builder(
-                itemCount: _searchResults.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_searchResults[index]),
-                  );
-                },
-              )
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () {
+                            // Perform actions when the tile is clicked
+                            // For example, navigate to a new page or display more info
+                            print('Clicked on ${_searchResults[index]}');
+                          },
+                          child: Card(
+                            elevation:
+                                3, // Adjust the elevation for the shadow effect
+                            margin: EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 16),
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          _searchResults[index],
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines:
+                                              2, // Limit the number of lines
+                                        ),
+                                      ),
+                                      Text(
+                                        'CHEATSHEET',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 20,
+
+                                        // Placeholder image in case profile image is not available
+                                        // You can replace this with your own placeholder image
+                                        // or leave it blank
+                                        // backgroundColor: Colors.grey,
+                                        // child: Icon(Icons.person),
+                                      ),
+                                      SizedBox(width: 10),
+                                      Flexible(
+                                        child: Text(
+                                          'App User',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        DateFormat('yyyy/MM/dd')
+                                            .format(DateTime.now()),
+                                        style: TextStyle(fontSize: 8),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 5),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          'ABCDEF University',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            //color: Colors.green,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )
                   : Center(
-                child: Text('No results found'),
-              ),
+                      child: Text('No results found'),
+                    ),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class WhereClause {
-  final String field;
-  final dynamic isEqualTo;
-  final dynamic isLessThan;
-  final dynamic isLessThanOrEqualTo;
-  final dynamic isGreaterThan;
-  final dynamic isGreaterThanOrEqualTo;
-
-  WhereClause(this.field,
-      {this.isEqualTo,
-        this.isLessThan,
-        this.isLessThanOrEqualTo,
-        this.isGreaterThan,
-        this.isGreaterThanOrEqualTo});
 }

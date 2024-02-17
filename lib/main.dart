@@ -48,6 +48,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController pass = TextEditingController();
   bool _valid = false;
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,6 +93,8 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () {
                     String mail = user.text;
                     String password = pass.text;
+                    DateTime today = DateTime.now();
+                    print(today);
                     FirebaseAuth.instance
                         .signInWithEmailAndPassword(
                         email: mail, password: password)
