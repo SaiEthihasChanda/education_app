@@ -24,7 +24,7 @@ class _SearchWidgetState extends State<SearchWidget> {
 
   final TextEditingController _searchController = TextEditingController();
   List<String> _tags = [];
-  List<String> _searchResults = [];
+  List<Map<String, dynamic>> _searchResults = [];
 
   @override
   void initState() {
@@ -42,9 +42,10 @@ class _SearchWidgetState extends State<SearchWidget> {
       setState(() {
         _username = snapshot['username'];
         _type = snapshot['type'];
+
         String _profileImage = snapshot['profilepic'];
         storage.Reference ref =
-            storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
+        storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
         ref.getDownloadURL().then((url) {
           setState(() {
             _profileImageUrl = url;
@@ -64,25 +65,21 @@ class _SearchWidgetState extends State<SearchWidget> {
 
     try {
       QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance.collection('docs').get();
-      Map<String, dynamic> documentDictionary = {};
+      await FirebaseFirestore.instance.collection('docs').get();
+      List<Map<String, dynamic>> matchingDocuments = [];
       for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
-        documentDictionary[documentSnapshot.id] = documentSnapshot.data();
-      }
-
-      List<String> matchingDocuments = [];
-      for (String documentId in documentDictionary.keys) {
-        Map<String, dynamic> documentData = documentDictionary[documentId];
+        Map<String, dynamic> documentData =
+        documentSnapshot.data() as Map<String, dynamic>; // Cast to Map<String, dynamic>
         List<String> documentTags =
-            List<String>.from(documentData['tags'] ?? []);
-        String title = documentData['title'] ??
-            ''; // Get the title from the document data with null check
+        List<String>.from(documentData['tags'] ?? []);
+        String title =
+            documentData['title'] ?? ''; // Get the title from the document data with null check
 
         bool anyTagMatches = false;
         for (String tag in tags) {
           // Remove leading and trailing whitespace from document tags and convert to lowercase
           List<String> trimmedTags =
-              documentTags.map((t) => t.trim().toLowerCase()).toList();
+          documentTags.map((t) => t.trim().toLowerCase()).toList();
           if (trimmedTags.contains(tag)) {
             anyTagMatches = true;
             break;
@@ -90,8 +87,7 @@ class _SearchWidgetState extends State<SearchWidget> {
         }
 
         if (anyTagMatches && title.isNotEmpty) {
-          matchingDocuments.add(
-              title); // Append the title to matching documents if it's not null or empty
+          matchingDocuments.add(documentData);
         }
       }
 
@@ -137,115 +133,122 @@ class _SearchWidgetState extends State<SearchWidget> {
             Expanded(
               child: _searchResults.isNotEmpty
                   ? ListView.builder(
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        return GestureDetector(
-                          onTap: () {
-                            // Perform actions when the tile is clicked
-                            // For example, navigate to a new page or display more info
-                            print('Clicked on ${_searchResults[index]}');
-                          },
-                          child: Card(
-                            elevation:
-                                3, // Adjust the elevation for the shadow effect
-                            margin: EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 16),
-                            child: Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          _searchResults[index],
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines:
-                                              2, // Limit the number of lines
-                                        ),
-                                      ),
-                                      Text(
-                                        'CHEATSHEET',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 10),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 20,
+                itemCount: _searchResults.length,
+                itemBuilder: (context, index) {
+                  Map<String, dynamic> documentData =
+                  _searchResults[index];
+                  String title = documentData['title'];
+                  String contributor = documentData['contributor'] ?? 'Unknown';
+                  String category = documentData['category'] ?? 'Unknown';
+                  String date = documentData['date'] ?? '';
 
-                                        // Placeholder image in case profile image is not available
-                                        // You can replace this with your own placeholder image
-                                        // or leave it blank
-                                        // backgroundColor: Colors.grey,
-                                        // child: Icon(Icons.person),
-                                      ),
-                                      SizedBox(width: 10),
-                                      Flexible(
-                                        child: Text(
-                                          'App User',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
+                  return GestureDetector(
+                    onTap: () {
+                      // Perform actions when the tile is clicked
+                      // For example, navigate to a new page or display more info
+                      print('Clicked on $title');
+                    },
+                    child: Card(
+                      elevation:
+                      3, // Adjust the elevation for the shadow effect
+                      margin: EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 16),
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines:
+                                    2, // Limit the number of lines
                                   ),
-                                  SizedBox(height: 10),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        DateFormat('yyyy/MM/dd')
-                                            .format(DateTime.now()),
-                                        style: TextStyle(fontSize: 8),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 5),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          'ABCDEF University',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            //color: Colors.green,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      )
-                                    ],
-                                  )
-                                ],
-                              ),
+                                ),
+
+                              ],
                             ),
-                          ),
-                        );
-                      },
-                    )
-                  : Center(
-                      child: Text('No results found'),
+                            SizedBox(height: 10),
+                            Row(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                              children: [
+                                CircleAvatar(
+                                    radius: 20,
+                                    backgroundImage: _profileImageUrl.isNotEmpty
+                                        ? NetworkImage(_profileImageUrl) as ImageProvider<Object>?
+                                        : AssetImage('assets/placeholder.jpg') // Placeholder image
+                                ),
+                                SizedBox(width: 10),
+                                Flexible(
+                                  child: Text(
+                                    contributor,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Spacer(),
+                                Text(
+                                  category,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'ABCDEF University',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      //color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Spacer(),
+                                Text(
+                                  date,
+                                  style: TextStyle(fontSize: 8),
+                                ),
+                              ],
+                            ),
+
+                            Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                              children: [
+
+                              ],
+                            )
+                          ],
+                        ),
+                      ),
                     ),
+                  );
+                },
+              )
+                  : Center(
+                child: Text('No results found'),
+              ),
             ),
           ],
         ),

@@ -11,7 +11,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:http/http.dart' as http;
-import 'main.dart';
+import 'package:intl/intl.dart';
 
 class Uploader extends StatefulWidget {
   @override
@@ -19,8 +19,6 @@ class Uploader extends StatefulWidget {
 }
 
 class _UploaderState extends State<Uploader> {
-
-
   PlatformFile? pickedFile;
   String scanned = "";
   List<String> tags = [];
@@ -28,6 +26,17 @@ class _UploaderState extends State<Uploader> {
   TextEditingController titleController = TextEditingController();
   bool loading = false;
   String _type = "";
+  String? selectedOption;
+  List<String> documentTypes = [
+    'Cheat Sheet',
+    'Text Book',
+    'Lecture Notes',
+    'Diagram',
+    'Test Paper',
+    'Formula sheet'
+    // Add more document types as needed
+  ];
+  String? selectedDocumentType;
 
   Future<List<String>> fetchkeys(String text) async {
     List<String> result = [];
@@ -38,7 +47,8 @@ class _UploaderState extends State<Uploader> {
         "the keywords must be unique as they would be used to search up this text. "
         "give me the comma seperated list of the keywords  and say nothing else but "
         "the list.. dont give me any other response. the text is as follows"
-        "         \n\n\n"+text;
+        "         \n\n\n" +
+        text;
     String requestBody = jsonEncode({'content': prompt});
     try {
       var response = await http.post(
@@ -51,11 +61,10 @@ class _UploaderState extends State<Uploader> {
       print('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        // Decode JSON response body into a list
         List<dynamic> keyList = jsonDecode(response.body);
         for (String tag in keyList) {
-          // Split tags containing multiple words into individual tags
-          List<String> splitTags = tag.split(" ").where((t) => t.isNotEmpty).toList();
+          List<String> splitTags =
+          tag.split(" ").where((t) => t.isNotEmpty).toList();
           result.addAll(splitTags);
         }
       } else {
@@ -83,13 +92,17 @@ class _UploaderState extends State<Uploader> {
   }
 
   Future<void> uploadFile() async {
-    if (pickedFile == null || titleController.text.isEmpty) {
+    print('pickedFile is null: ${pickedFile == null}');
+    print('title is empty: ${titleController.text.isEmpty}');
+    print('selectedOption is null: ${selectedDocumentType == null} ${selectedDocumentType}');
+
+    if (pickedFile == null || titleController.text.isEmpty || selectedDocumentType == null ) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text("Missing Information"),
-            content: Text("Please select a file and enter a title."),
+            content: Text("Please select a file, enter a title, choose a document type, and select a document category."),
             actions: <Widget>[
               TextButton(
                 child: Text("OK"),
@@ -109,14 +122,14 @@ class _UploaderState extends State<Uploader> {
     });
 
     try {
-      String fileName = pickedFile!.name;
+      String fileName = pickedFile!.name!;
       final FirebaseAuth _auth = FirebaseAuth.instance;
       User _user = _auth.currentUser!;
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(_user.email)
           .get();
-      if (snapshot.exists){
+      if (snapshot.exists) {
         setState(() {
           _type = snapshot['type'];
         });
@@ -133,16 +146,18 @@ class _UploaderState extends State<Uploader> {
           'file-name': pickedFile!.name ?? '',
           'tags': jsonEncode(tags),
           'title': titleController.text,
-          'date':''
         },
       );
 
-
       await ref.putFile(File(pickedFile!.path!), metadata);
-      final doc = FirebaseFirestore.instance.collection('docs').doc(pickedFile!.name);
+      final doc = FirebaseFirestore.instance.collection('docs').doc(fileName);
       final json = {
         "tags": tags,
         "title": titleController.text,
+        'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        'userpfp': snapshot['profilepic'],
+        'category': selectedDocumentType!,
+        'contributor': snapshot['username'],
       };
 
       await doc.set(json);
@@ -153,13 +168,11 @@ class _UploaderState extends State<Uploader> {
     } finally {
       setState(() {
         loading = false;
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => home()),
-        );
+        Navigator.pop(context);
       });
     }
   }
+
 
   Future<void> selectFile() async {
     final status = await Permission.storage.request();
@@ -173,9 +186,11 @@ class _UploaderState extends State<Uploader> {
             scanned = "";
           });
 
-          if (pickedFile!.extension == 'png' || pickedFile!.extension == 'jpg') {
+          if (pickedFile!.extension == 'png' ||
+              pickedFile!.extension == 'jpg') {
             final file = File(pickedFile!.path!);
-            final inputimage = ml.InputImage.fromFilePath(pickedFile!.path!);
+            final inputimage =
+            ml.InputImage.fromFilePath(pickedFile!.path!);
             final textDetector = ml.GoogleMlKit.vision.textRecognizer();
             ml.RecognizedText recognizedText =
             await textDetector.processImage(inputimage);
@@ -231,6 +246,25 @@ class _UploaderState extends State<Uploader> {
     }
   }
 
+  Widget buildOptionTile(String option) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 5),
+      child: ChoiceChip(
+        label: Text(option),
+        selected: true,
+        onSelected: (selected) => handleChipSelection(selected, option),
+      ),
+    );
+  }
+
+  void handleChipSelection(bool selected, String option) {
+    setState(() {
+      selectedOption = selected ? option : null;
+      print(selectedOption);
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -244,7 +278,8 @@ class _UploaderState extends State<Uploader> {
               height: MediaQuery.of(context).size.height / 2,
               child: Center(
                 child: pickedFile != null
-                    ? pickedFile!.extension == 'png' || pickedFile!.extension == 'jpg'
+                    ? pickedFile!.extension == 'png' ||
+                    pickedFile!.extension == 'jpg'
                     ? Image.file(
                   File(pickedFile!.path!),
                   fit: BoxFit.cover,
@@ -285,16 +320,35 @@ class _UploaderState extends State<Uploader> {
               ),
             ),
             SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              value: selectedDocumentType,
+              hint: Text('Select Document Type'),
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedDocumentType = newValue;
+                });
+              },
+              items: documentTypes.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 20),
             loading ? CircularProgressIndicator() : SizedBox(),
             SizedBox(height: 10),
-            loading ? SizedBox() : Column(
+            loading
+                ? SizedBox()
+                : Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'Tags:',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -325,7 +379,8 @@ class _UploaderState extends State<Uploader> {
                     ),
                     SizedBox(width: 10),
                     ElevatedButton(
-                      onPressed: () => addCustomTag(customTagController.text),
+                      onPressed: () =>
+                          addCustomTag(customTagController.text),
                       child: Text('Add'),
                     ),
                   ],
