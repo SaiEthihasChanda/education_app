@@ -92,11 +92,9 @@ class _UploaderState extends State<Uploader> {
   }
 
   Future<void> uploadFile() async {
-    print('pickedFile is null: ${pickedFile == null}');
-    print('title is empty: ${titleController.text.isEmpty}');
-    print('selectedOption is null: ${selectedDocumentType == null} ${selectedDocumentType}');
-
-    if (pickedFile == null || titleController.text.isEmpty || selectedDocumentType == null ) {
+    // Check if required fields are not empty
+    if (pickedFile == null || titleController.text.isEmpty || selectedDocumentType == null) {
+      // Show error dialog if any required field is empty
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -122,7 +120,11 @@ class _UploaderState extends State<Uploader> {
     });
 
     try {
-      String fileName = pickedFile!.name!;
+      // Sanitize file name and generate ID
+      String fileName = sanitizeFileName(pickedFile!.name!);
+      String id = generateId();
+
+      // Get current user
       final FirebaseAuth _auth = FirebaseAuth.instance;
       User _user = _auth.currentUser!;
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
@@ -135,34 +137,84 @@ class _UploaderState extends State<Uploader> {
         });
       }
 
-      Reference ref = FirebaseStorage.instance.ref('uploads/$fileName');
+      // Reference to the file in Firebase Storage
+      Reference ref = FirebaseStorage.instance.ref('uploads/$id');
+
+
+      // Fetch keywords from text
       List<String> keywords = await fetchkeys(scanned);
-      DateTime today = DateTime.now();
-      print("todays date is: $today");
-      SettableMetadata metadata = SettableMetadata(
-        contentType: pickedFile!.extension,
-        customMetadata: {
-          'uploaded-by': snapshot['username'],
-          'file-name': pickedFile!.name ?? '',
-          'tags': jsonEncode(tags),
-          'title': titleController.text,
-        },
-      );
 
-      await ref.putFile(File(pickedFile!.path!), metadata);
-      final doc = FirebaseFirestore.instance.collection('docs').doc(fileName);
-      final json = {
-        "tags": tags,
-        "title": titleController.text,
-        'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        'userpfp': snapshot['profilepic'],
-        'category': selectedDocumentType!,
-        'contributor': snapshot['username'],
-      };
+      // Set metadata for the file
+      if(pickedFile!.extension == "pdf"){
+        Reference ref = FirebaseStorage.instance.ref('uploads/$id'+".pdf");
+        SettableMetadata metadata = SettableMetadata(
+          contentType: 'application/pdf',
+          customMetadata: {
+            'uploaded-by': snapshot['username'],
+            'file-name': fileName,
+            'tags': jsonEncode(tags),
+            'title': titleController.text,
 
-      await doc.set(json);
 
-      debugPrint('File uploaded successfully to: $ref.fullPath');
+          },
+        );
+        await ref.putFile(File(pickedFile!.path!), metadata);
+      }
+      else{
+
+        SettableMetadata metadata = SettableMetadata(
+          contentType: pickedFile!.extension,
+          customMetadata: {
+            'uploaded-by': snapshot['username'],
+            'file-name': fileName,
+            'tags': jsonEncode(tags),
+            'title': titleController.text,
+
+
+          },
+        );
+        await ref.putFile(File(pickedFile!.path!), metadata);
+
+      }
+
+
+      // Upload file to Firebase Storage
+
+
+      // Add document data to Firestore
+      final doc = FirebaseFirestore.instance.collection('docs').doc(id);
+      if(pickedFile!.extension == "pdf"){
+        final json = {
+          "tags": tags,
+          "title": titleController.text,
+          'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          'userpfp': snapshot['profilepic'],
+          'category': selectedDocumentType!,
+          'contributor': snapshot['username'],
+          'id': id+".pdf"
+        };
+        await doc.set(json);
+
+
+      }
+      else{
+        final json = {
+          "tags": tags,
+          "title": titleController.text,
+          'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          'userpfp': snapshot['profilepic'],
+          'category': selectedDocumentType!,
+          'contributor': snapshot['username'],
+          'id': id
+        };
+        await doc.set(json);
+
+      }
+
+
+
+
+      //debugPrint('File uploaded successfully to: $ref.fullPath');
     } catch (error) {
       debugPrint('Error uploading file: $error');
     } finally {
@@ -173,6 +225,15 @@ class _UploaderState extends State<Uploader> {
     }
   }
 
+  String sanitizeFileName(String fileName) {
+    // Replace spaces and special characters with underscores
+    return fileName.replaceAll(RegExp(r'[^\w\s]+'), '_');
+  }
+
+  String generateId() {
+    // Generate a unique ID with letters and numbers only
+    return DateTime.now().millisecondsSinceEpoch.toString();
+  }
 
   Future<void> selectFile() async {
     final status = await Permission.storage.request();
@@ -187,7 +248,8 @@ class _UploaderState extends State<Uploader> {
           });
 
           if (pickedFile!.extension == 'png' ||
-              pickedFile!.extension == 'jpg') {
+              pickedFile!.extension == 'jpg' ||
+              pickedFile!.extension == 'jepg'){
             final file = File(pickedFile!.path!);
             final inputimage =
             ml.InputImage.fromFilePath(pickedFile!.path!);
@@ -263,7 +325,6 @@ class _UploaderState extends State<Uploader> {
       print(selectedOption);
     });
   }
-
 
   @override
   Widget build(BuildContext context) {

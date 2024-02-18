@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as storage;
+import 'documentview.dart';
 import 'package:intl/intl.dart'; // Import the intl package to format dates
 
 void main() {
@@ -21,6 +22,8 @@ class _SearchWidgetState extends State<SearchWidget> {
   String _username = '';
   String _profileImageUrl = '';
   String _type = '';
+  String _documentid = '';
+  String DocumentURL = '';
 
   final TextEditingController _searchController = TextEditingController();
   List<String> _tags = [];
@@ -42,9 +45,21 @@ class _SearchWidgetState extends State<SearchWidget> {
       setState(() {
         _username = snapshot['username'];
         _type = snapshot['type'];
+        _documentid = snapshot['id'];
+        storage.Reference ref =
+        storage.FirebaseStorage.instance.ref('uploads/$_documentid');
+        ref.getDownloadURL().then((url) {
+          print(url);
+          setState(() {
+            DocumentURL = url;
+          });
+        }).catchError((error) {
+          print('Error getting download URL: $error');
+        });
+
 
         String _profileImage = snapshot['profilepic'];
-        storage.Reference ref =
+        storage.Reference docref =
         storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
         ref.getDownloadURL().then((url) {
           setState(() {
@@ -141,12 +156,22 @@ class _SearchWidgetState extends State<SearchWidget> {
                   String contributor = documentData['contributor'] ?? 'Unknown';
                   String category = documentData['category'] ?? 'Unknown';
                   String date = documentData['date'] ?? '';
+                  String docid = documentData['id'] ??'';
 
                   return GestureDetector(
                     onTap: () {
-                      // Perform actions when the tile is clicked
-                      // For example, navigate to a new page or display more info
-                      print('Clicked on $title');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DocumentView(
+                            title: title,
+                            contributor: contributor,
+                            category: category,
+                            date: date,
+                            id: docid
+                          ),
+                        ),
+                      );
                     },
                     child: Card(
                       elevation:

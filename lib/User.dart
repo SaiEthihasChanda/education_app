@@ -43,6 +43,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           print('Error getting download URL: $error');
         });
       });
+      print("image url is $_profileImageUrl");
     }
   }
 
