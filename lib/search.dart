@@ -159,16 +159,41 @@ class _SearchWidgetState extends State<SearchWidget> {
                   String docid = documentData['id'] ??'';
 
                   return GestureDetector(
-                    onTap: () {
+                    onTap: () async {
+                      String userEmail = _auth.currentUser!.email!;
+                      DocumentReference userDocRef = FirebaseFirestore.instance.collection('users').doc(userEmail);
+                      DocumentSnapshot userDocSnapshot = await userDocRef.get();
+
+                      // Check if the "recent10" attribute exists
+                      if (!userDocSnapshot.exists || !(userDocSnapshot.data() as Map<String, dynamic>).containsKey('recent10')){
+                        // If it doesn't exist, initialize it as an empty list
+                        await userDocRef.set({'recent10': []}, SetOptions(merge: true));
+                      }
+
+                      // Retrieve the current "recent10" list from the document data
+                      List<String> recent10 = List<String>.from(userDocSnapshot['recent10'] ?? []);
+
+                      // Add the document ID to the "recent10" list
+                      if (!recent10.contains(docid)) {
+                        recent10.add(docid);
+
+                        // Remove the oldest element if the list exceeds 10 elements
+                        if (recent10.length > 10) {
+                          recent10.removeAt(0);
+                        }
+
+                        // Update the document with the updated "recent10" list
+                        await userDocRef.update({'recent10': recent10});
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => DocumentView(
-                            title: title,
-                            contributor: contributor,
-                            category: category,
-                            date: date,
-                            id: docid
+                              title: title,
+                              contributor: contributor,
+                              category: category,
+                              date: date,
+                              id: docid
                           ),
                         ),
                       );
