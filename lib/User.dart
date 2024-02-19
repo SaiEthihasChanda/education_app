@@ -10,7 +10,6 @@ import 'package:test_flutter_1/uploader.dart';
 import 'main.dart';
 import 'search.dart';
 
-
 class UserProfilePage extends StatefulWidget {
   @override
   _UserProfilePageState createState() => _UserProfilePageState();
@@ -57,7 +56,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: _user != null
           ? Center(
         child: Padding(
@@ -89,7 +87,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ElevatedButton(
                 onPressed: () async {
                   await _auth.signOut();
-                  final Directory directory = await getApplicationDocumentsDirectory();
+                  final Directory directory =
+                  await getApplicationDocumentsDirectory();
                   final file = File('${directory.path}/creds.txt');
                   file.delete();
                   Navigator.pushAndRemoveUntil(
@@ -107,7 +106,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
           : Center(
         child: CircularProgressIndicator(),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    if (_type == "contributor") {
+      return BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -118,7 +123,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             label: 'Storage',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.upload), // Icon for upload page
+            icon: Icon(Icons.upload),
             label: 'Upload',
           ),
           BottomNavigationBarItem(
@@ -131,7 +136,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ),
         ],
         type: BottomNavigationBarType.fixed,
-        currentIndex: 3, // Index of the current page (Search)
+        currentIndex: 3, // Index of the current page (Profile)
         selectedItemColor: Colors.blue,
         onTap: (int index) {
           switch (index) {
@@ -160,8 +165,57 @@ class _UserProfilePageState extends State<UserProfilePage> {
               break;
           }
         },
-      ),
-    );
+      );
+    } else {
+      return BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage),
+            label: 'Storage',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search), // Icon for current page
+            label: 'Search',
+          ),
+        ],
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 3, // Index of the current page (Profile)
+        selectedItemColor: Colors.blue,
+        onTap: (int index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => home()),
+              );
+              break;
+            case 1:
+            // Add logic to navigate to the storage page
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SearchWidget()),
+              );
+              break;
+          }
+        },
+      );
+    }
   }
 }
 

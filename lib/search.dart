@@ -3,12 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as storage;
 import 'package:test_flutter_1/uploader.dart';
-
 import 'package:intl/intl.dart';
-
 import 'User.dart';
 import 'documentview.dart';
-import 'main.dart'; // Import the intl package to format dates
+import 'main.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -62,7 +60,6 @@ class _SearchWidgetState extends State<SearchWidget> {
           print('Error getting download URL: $error');
         });
 
-
         String _profileImage = snapshot['profilepic'];
         storage.Reference docref =
         storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
@@ -78,8 +75,7 @@ class _SearchWidgetState extends State<SearchWidget> {
   }
 
   Future<void> _search() async {
-    String searchText = _searchController.text
-        .toLowerCase(); // Convert search query to lowercase
+    String searchText = _searchController.text.toLowerCase();
     List<String> tags = searchText.split(" ");
     print(tags);
 
@@ -89,15 +85,13 @@ class _SearchWidgetState extends State<SearchWidget> {
       List<Map<String, dynamic>> matchingDocuments = [];
       for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
         Map<String, dynamic> documentData =
-        documentSnapshot.data() as Map<String, dynamic>; // Cast to Map<String, dynamic>
+        documentSnapshot.data() as Map<String, dynamic>;
         List<String> documentTags =
         List<String>.from(documentData['tags'] ?? []);
-        String title =
-            documentData['title'] ?? ''; // Get the title from the document data with null check
+        String title = documentData['title'] ?? '';
 
         bool anyTagMatches = false;
         for (String tag in tags) {
-          // Remove leading and trailing whitespace from document tags and convert to lowercase
           List<String> trimmedTags =
           documentTags.map((t) => t.trim().toLowerCase()).toList();
           if (trimmedTags.contains(tag)) {
@@ -123,7 +117,6 @@ class _SearchWidgetState extends State<SearchWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -156,36 +149,35 @@ class _SearchWidgetState extends State<SearchWidget> {
                   Map<String, dynamic> documentData =
                   _searchResults[index];
                   String title = documentData['title'];
-                  String contributor = documentData['contributor'] ?? 'Unknown';
+                  String contributor =
+                      documentData['contributor'] ?? 'Unknown';
                   String category = documentData['category'] ?? 'Unknown';
                   String date = documentData['date'] ?? '';
-                  String docid = documentData['id'] ??'';
+                  String docid = documentData['id'] ?? '';
 
                   return GestureDetector(
                     onTap: () async {
                       String userEmail = _auth.currentUser!.email!;
-                      DocumentReference userDocRef = FirebaseFirestore.instance.collection('users').doc(userEmail);
-                      DocumentSnapshot userDocSnapshot = await userDocRef.get();
+                      DocumentReference userDocRef =
+                      FirebaseFirestore.instance.collection('users').doc(userEmail);
+                      DocumentSnapshot userDocSnapshot =
+                      await userDocRef.get();
 
-                      // Check if the "recent10" attribute exists
-                      if (!userDocSnapshot.exists || !(userDocSnapshot.data() as Map<String, dynamic>).containsKey('recent10')){
-                        // If it doesn't exist, initialize it as an empty list
+                      if (!userDocSnapshot.exists ||
+                          !(userDocSnapshot.data() as Map<String, dynamic>).containsKey('recent10')) {
                         await userDocRef.set({'recent10': []}, SetOptions(merge: true));
                       }
 
-                      // Retrieve the current "recent10" list from the document data
-                      List<String> recent10 = List<String>.from(userDocSnapshot['recent10'] ?? []);
+                      List<String> recent10 =
+                      List<String>.from(userDocSnapshot['recent10'] ?? []);
 
-                      // Add the document ID to the "recent10" list
                       if (!recent10.contains(docid)) {
                         recent10.add(docid);
 
-                        // Remove the oldest element if the list exceeds 10 elements
                         if (recent10.length > 10) {
                           recent10.removeAt(0);
                         }
 
-                        // Update the document with the updated "recent10" list
                         await userDocRef.update({'recent10': recent10});
                       }
                       Navigator.push(
@@ -202,8 +194,7 @@ class _SearchWidgetState extends State<SearchWidget> {
                       );
                     },
                     child: Card(
-                      elevation:
-                      3, // Adjust the elevation for the shadow effect
+                      elevation: 3,
                       margin: EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
                       child: Padding(
@@ -223,23 +214,20 @@ class _SearchWidgetState extends State<SearchWidget> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                     overflow: TextOverflow.ellipsis,
-                                    maxLines:
-                                    2, // Limit the number of lines
+                                    maxLines: 2,
                                   ),
                                 ),
-
                               ],
                             ),
                             SizedBox(height: 10),
                             Row(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 CircleAvatar(
-                                    radius: 20,
-                                    backgroundImage: _profileImageUrl.isNotEmpty
-                                        ? NetworkImage(_profileImageUrl) as ImageProvider<Object>?
-                                        : AssetImage('assets/placeholder.jpg') // Placeholder image
+                                  radius: 20,
+                                  backgroundImage: _profileImageUrl.isNotEmpty
+                                      ? NetworkImage(_profileImageUrl) as ImageProvider<Object>?
+                                      : AssetImage('assets/placeholder.jpg'),
                                 ),
                                 SizedBox(width: 10),
                                 Flexible(
@@ -272,7 +260,6 @@ class _SearchWidgetState extends State<SearchWidget> {
                                     'ABCDEF University',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      //color: Colors.green,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -284,14 +271,6 @@ class _SearchWidgetState extends State<SearchWidget> {
                                 ),
                               ],
                             ),
-
-                            Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
-                              children: [
-
-                              ],
-                            )
                           ],
                         ),
                       ),
@@ -306,7 +285,13 @@ class _SearchWidgetState extends State<SearchWidget> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    if (_type == "contributor") {
+      return BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -317,7 +302,7 @@ class _SearchWidgetState extends State<SearchWidget> {
             label: 'Storage',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.upload), // Icon for upload page
+            icon: Icon(Icons.upload),
             label: 'Upload',
           ),
           BottomNavigationBarItem(
@@ -325,12 +310,12 @@ class _SearchWidgetState extends State<SearchWidget> {
             label: 'Profile',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search), // Icon for current page
+            icon: Icon(Icons.search),
             label: 'Search',
           ),
         ],
         type: BottomNavigationBarType.fixed,
-        currentIndex: 4, // Index of the current page (Search)
+        currentIndex: 4,
         selectedItemColor: Colors.blue,
         onTap: (int index) {
           switch (index) {
@@ -354,12 +339,59 @@ class _SearchWidgetState extends State<SearchWidget> {
                 context,
                 MaterialPageRoute(builder: (context) => UserProfilePage()),
               );
+              break;
             case 4:
             // Add logic if needed when the search page is tapped again
               break;
           }
         },
-      ),
-    );
+      );
+    } else {
+      return BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage),
+            label: 'Storage',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
+        ],
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 3,
+        selectedItemColor: Colors.blue,
+        onTap: (int index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => home()),
+              );
+              break;
+            case 1:
+            // Add logic to navigate to the storage page
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
+              );
+              break;
+            case 3:
+            // Add logic if needed when the search page is tapped again
+              break;
+          }
+        },
+      );
+    }
   }
 }
