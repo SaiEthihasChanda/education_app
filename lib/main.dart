@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 
-import 'documentview.dart';
-import 'uploader.dart';
 import 'User.dart';
-import 'search.dart';
+import 'documentview.dart';
+
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,6 +18,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:path_provider/path_provider.dart'; // Import path_provider package
 import 'package:permission_handler/permission_handler.dart';
 
+import 'search.dart';
+import 'uploader.dart';
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -29,24 +33,10 @@ void main() async {
       storageBucket: 'educationapp-23878.appspot.com',
     ),
   );
-  final credentials = await _readCredentials();
-  if (credentials.isNotEmpty) {
-    // Attempt login with saved credentials
-    final email = credentials[0];
-    final password = credentials[1];
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      runApp(MyApp());
-    } catch (error) {
-      // Error logging in with saved credentials, proceed to login page
-      runApp(MyApp());
-    }
-  } else {
+
+
     runApp(MyApp());
-  }
+  
 }
 
 class MyApp extends StatelessWidget {
@@ -71,12 +61,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Center(
-          child: Text('Login'),
-        ),
-        backgroundColor: Colors.blue,
-      ),
+
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -159,6 +144,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
+
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -247,30 +234,16 @@ class _SignUpPageState extends State<SignUpPage> {
     String username = usernameController.text;
     String password = passwordController.text;
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+
 
       // Upload profile picture to Firebase Storage
       String profilePicId = DateTime.now().millisecondsSinceEpoch.toString();
       // Generate unique ID for profile picture
       String profilePicPath = 'pfps/$profilePicId';
-      SettableMetadata metadata = SettableMetadata(
-        contentType: pickedFile!
-            .extension, // You can set content type dynamically based on the file type
-      );
-      await FirebaseStorage.instance
-          .ref(profilePicPath)
-          .putFile(_profilePic!, metadata);
 
-      final userDoc =
-      FirebaseFirestore.instance.collection('users').doc(email);
-      final userData = {
-        'username': username,
-        'profilepic': profilePicId,
-        'type': _userType,
-      };
+
+
+
 
 
       if (_idFile != null && _userType == 'contributor') {
@@ -299,7 +272,7 @@ class _SignUpPageState extends State<SignUpPage> {
           final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
           final userData = {
             'username': username,
-            'profilepic': profilePicId,
+            'profilepic': profilePicId ?? '',
             'type': _userType,
 
           };
@@ -315,19 +288,35 @@ class _SignUpPageState extends State<SignUpPage> {
           );
         }
       }
-      else if(_idFile != null && _userType == 'student'){
+      else if(_userType == 'student'){
         await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
-        await userDoc.set(userData);
         _saveCredentials(email, password);
+        final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+        final userData = {
+          'username': username,
+          'profilepic': profilePicId ?? '',
+          'type': _userType,
+
+        };
+        await userDoc.set(userData);
+        SettableMetadata metadata = SettableMetadata(
+          contentType: pickedFile!
+              .extension, // You can set content type dynamically based on the file type
+        );
+        await FirebaseStorage.instance.ref(profilePicPath).putFile(_profilePic!, metadata);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => home()),
+        );
+
+
+
 
       }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => home()),
-      );
+
     } catch (e) {
       print('Error: $e');
     }
@@ -450,6 +439,18 @@ class home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title:
+          Text(
+            'ReadIt.',
+            style: TextStyle(
+              fontSize: 30
+            ),
+
+
+        ),
+        backgroundColor: Colors.white,
+      ),
       body: FutureBuilder<String>(
         future: _getUserInfo(),
         builder: (context, snapshot) {
@@ -508,19 +509,19 @@ class home extends StatelessWidget {
                       // Add logic to navigate to the storage page
                         break;
                       case 2:
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => Uploader()),
                         );
                         break;
                       case 3:
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => UserProfilePage()),
                         );
                         break;
                       case 4: // Search button tapped
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => SearchWidget()),
                         );
@@ -564,13 +565,14 @@ class home extends StatelessWidget {
                       // Add logic to navigate to the storage page
                         break;
                       case 2:
-                        Navigator.push(
+                        Navigator.pushReplacement(
+
                           context,
                           MaterialPageRoute(builder: (context) => UserProfilePage()),
                         );
                         break;
                       case 3:
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => SearchWidget()),
                         );
@@ -589,19 +591,9 @@ class home extends StatelessWidget {
   Widget _buildHomeContent() {
     return Stack(
       children: [
-        Align(
-          alignment: Alignment.topLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 75.0, left: 30.0),
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.grey[200],
-              //backgroundImage: AssetImage('assets/placeholder_image.png'),
-            ),
-          ),
-        ),
+
         Padding(
-          padding: const EdgeInsets.only(top: 200.0),
+          padding: const EdgeInsets.only(top: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -617,7 +609,7 @@ class home extends StatelessWidget {
               ),
               SizedBox(width: 50),
               SizedBox(
-                height: 150,
+                height: 180,
                 child: FutureBuilder<List<String>>(
                   future: _getRecentFiles(),
                   builder: (context, snapshot) {
@@ -631,80 +623,90 @@ class home extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         itemCount: recentFiles.length,
                         itemBuilder: (context, index) {
-                          return FutureBuilder<DocumentSnapshot>(
-                            future: FirebaseFirestore.instance.collection('docs').doc(recentFiles[index]).get(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return SizedBox(
-                                  width: 150,
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: CircularProgressIndicator(),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance.collection('docs').doc(recentFiles[index]).get(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return SizedBox(
+                                    width: 180, // Adjust the width of each card
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10.0),
+                                        child: CircularProgressIndicator(),
+                                      ),
                                     ),
-                                  ),
-                                );
-                              } else if (snapshot.hasError) {
-                                return SizedBox(
-                                  width: 150,
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text('Error: ${snapshot.error}'),
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return SizedBox(
+                                    width: 180, // Adjust the width of each card
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text('Error: ${snapshot.error}'),
+                                      ),
                                     ),
-                                  ),
-                                );
-                              } else if (!snapshot.hasData || !snapshot.data!.exists) {
-                                return SizedBox(
-                                  width: 150,
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text('Document not found'),
+                                  );
+                                } else if (!snapshot.hasData || !snapshot.data!.exists) {
+                                  return SizedBox(
+                                    width: 180, // Adjust the width of each card
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text('Document not found'),
+                                      ),
                                     ),
-                                  ),
-                                );
-                              } else {
-                                String title = snapshot.data!.get('title');
-                                String docid = snapshot.data!.get('id');
-                                String contr = snapshot.data!.get('contributor');
-                                String cat = snapshot.data!.get('category');
-                                String date = snapshot.data!.get('date');
+                                  );
+                                } else {
+                                  String title = snapshot.data!.get('title');
+                                  String docid = snapshot.data!.get('id');
+                                  String contr = snapshot.data!.get('contributor');
+                                  String cat = snapshot.data!.get('category');
+                                  String date = snapshot.data!.get('date');
 
-                                return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => DocumentView(
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DocumentView(
                                             title: title,
                                             contributor: contr,
                                             category: cat,
                                             date: date,
-                                            id: docid
-                                        ),
-                                      ),
-                                    );
-                                    print('Card clicked: $title');
-                                  },
-                                  child: SizedBox(
-                                    width: 150,
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          title,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold, // Make text bold
+                                            id: docid,
                                           ),
-                                          maxLines: null, // Allow text to continue on the next line
+                                        ),
+                                      );
+                                      print('Card clicked: $title');
+                                    },
+                                    child: SizedBox(
+                                      width: 180, // Adjust the width of each card
+                                      child: Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                title,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold, // Make text bold
+                                                ),
+                                                maxLines: null, // Allow text to continue on the next line
+                                              ),
+                                              SizedBox(height: 8),
+                                              // Add more details if needed
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }
-                            },
+                                  );
+                                }
+                              },
+                            ),
                           );
                         },
                       );
@@ -723,7 +725,7 @@ class home extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                height: 150,
+                height: 180,
                 child: FutureBuilder<List<String>>(
                   future: _getPopularFiles(),
                   builder: (context, snapshot) {
@@ -737,58 +739,61 @@ class home extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         itemCount: popularFiles.length,
                         itemBuilder: (context, index) {
-                          return FutureBuilder<DocumentSnapshot>(
-                            future: FirebaseFirestore.instance.collection('docs').doc(popularFiles[index]).get(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return SizedBox(
-                                  width: 150,
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                );
-                              } else if (snapshot.hasError) {
-                                return SizedBox(
-                                  width: 150,
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text('Error: ${snapshot.error}'),
-                                    ),
-                                  ),
-                                );
-                              } else if (!snapshot.hasData || !snapshot.data!.exists) {
-                                return SizedBox(
-                                  width: 150,
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text('Document not found'),
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                String title = snapshot.data!.get('title');
-                                return SizedBox(
-                                  width: 150,
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text(
-                                        title,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold, // Make text bold
-                                        ),
-                                        maxLines: null, // Allow text to continue on the next line
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance.collection('docs').doc(popularFiles[index]).get(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return SizedBox(
+                                    width: 180, // Adjust the width of each card
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: CircularProgressIndicator(),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }
-                            },
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return SizedBox(
+                                    width: 180, // Adjust the width of each card
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text('Error: ${snapshot.error}'),
+                                      ),
+                                    ),
+                                  );
+                                } else if (!snapshot.hasData || !snapshot.data!.exists) {
+                                  return SizedBox(
+                                    width: 180, // Adjust the width of each card
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text('Document not found'),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  String title = snapshot.data!.get('title');
+                                  return SizedBox(
+                                    width: 180, // Adjust the width of each card
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          title,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold, // Make text bold
+                                          ),
+                                          maxLines: null, // Allow text to continue on the next line
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                           );
                         },
                       );
@@ -862,25 +867,30 @@ Future<String> _getUserInfo() async {
 
 Future<void> _saveCredentials(String email, String password) async {
   // Get the directory for the app's local files.
-  final Directory directory = await getApplicationDocumentsDirectory();
-  final File file = File('${directory.path}/creds.txt');
-  final String data = '$email|$password';
-  await file.writeAsString(data);
-}
-
-Future<List<String>> _readCredentials() async {
-  try {
-    // Get the directory for the app's local files.
+  if (email != ''&& password!=''){
     final Directory directory = await getApplicationDocumentsDirectory();
     final File file = File('${directory.path}/creds.txt');
+    final String data = '$email|$password';
+    await file.writeAsString(data);
+
+  }
+
+}
+
+
+
+Future<List<String>?> _readCredentials() async {
+  try {
+    final file = File('creds.txt');
     if (await file.exists()) {
-      final String contents = await file.readAsString();
-      return contents.split('|');
-    } else {
-      return [];
+      final contents = await file.readAsString();
+      if (contents.isNotEmpty) {
+        return contents.split(',');
+      }
     }
   } catch (e) {
     print('Error reading credentials: $e');
-    return [];
   }
+  return null; // Return null if file doesn't exist or is empty
 }
+

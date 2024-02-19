@@ -12,6 +12,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:test_flutter_1/User.dart';
+import 'package:test_flutter_1/main.dart';
+import 'package:test_flutter_1/search.dart';
 
 class Uploader extends StatefulWidget {
   @override
@@ -93,14 +96,17 @@ class _UploaderState extends State<Uploader> {
 
   Future<void> uploadFile() async {
     // Check if required fields are not empty
-    if (pickedFile == null || titleController.text.isEmpty || selectedDocumentType == null) {
+    if (pickedFile == null ||
+        titleController.text.isEmpty ||
+        selectedDocumentType == null) {
       // Show error dialog if any required field is empty
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text("Missing Information"),
-            content: Text("Please select a file, enter a title, choose a document type, and select a document category."),
+            content: Text(
+                "Please select a file, enter a title, choose a document type, and select a document category."),
             actions: <Widget>[
               TextButton(
                 child: Text("OK"),
@@ -140,13 +146,12 @@ class _UploaderState extends State<Uploader> {
       // Reference to the file in Firebase Storage
       Reference ref = FirebaseStorage.instance.ref('uploads/$id');
 
-
       // Fetch keywords from text
       List<String> keywords = await fetchkeys(scanned);
 
       // Set metadata for the file
-      if(pickedFile!.extension == "pdf"){
-        Reference ref = FirebaseStorage.instance.ref('uploads/$id'+".pdf");
+      if (pickedFile!.extension == "pdf") {
+        Reference ref = FirebaseStorage.instance.ref('uploads/$id' + ".pdf");
         SettableMetadata metadata = SettableMetadata(
           contentType: 'application/pdf',
           customMetadata: {
@@ -154,14 +159,10 @@ class _UploaderState extends State<Uploader> {
             'file-name': fileName,
             'tags': jsonEncode(tags),
             'title': titleController.text,
-
-
           },
         );
         await ref.putFile(File(pickedFile!.path!), metadata);
-      }
-      else{
-
+      } else {
         SettableMetadata metadata = SettableMetadata(
           contentType: pickedFile!.extension,
           customMetadata: {
@@ -169,21 +170,16 @@ class _UploaderState extends State<Uploader> {
             'file-name': fileName,
             'tags': jsonEncode(tags),
             'title': titleController.text,
-
-
           },
         );
         await ref.putFile(File(pickedFile!.path!), metadata);
-
       }
-
 
       // Upload file to Firebase Storage
 
-
       // Add document data to Firestore
       final doc = FirebaseFirestore.instance.collection('docs').doc(id);
-      if(pickedFile!.extension == "pdf"){
+      if (pickedFile!.extension == "pdf") {
         final json = {
           "tags": tags,
           "title": titleController.text,
@@ -191,13 +187,10 @@ class _UploaderState extends State<Uploader> {
           'userpfp': snapshot['profilepic'],
           'category': selectedDocumentType!,
           'contributor': snapshot['username'],
-          'id': id+".pdf"
+          'id': id + ".pdf"
         };
         await doc.set(json);
-
-
-      }
-      else{
+      } else {
         final json = {
           "tags": tags,
           "title": titleController.text,
@@ -208,11 +201,7 @@ class _UploaderState extends State<Uploader> {
           'id': id
         };
         await doc.set(json);
-
       }
-
-
-
 
       //debugPrint('File uploaded successfully to: $ref.fullPath');
     } catch (error) {
@@ -249,10 +238,9 @@ class _UploaderState extends State<Uploader> {
 
           if (pickedFile!.extension == 'png' ||
               pickedFile!.extension == 'jpg' ||
-              pickedFile!.extension == 'jepg'){
+              pickedFile!.extension == 'jepg') {
             final file = File(pickedFile!.path!);
-            final inputimage =
-            ml.InputImage.fromFilePath(pickedFile!.path!);
+            final inputimage = ml.InputImage.fromFilePath(pickedFile!.path!);
             final textDetector = ml.GoogleMlKit.vision.textRecognizer();
             ml.RecognizedText recognizedText =
             await textDetector.processImage(inputimage);
@@ -334,6 +322,7 @@ class _UploaderState extends State<Uploader> {
       ),
       body: SingleChildScrollView(
         child: Column(
+
           children: [
             SizedBox(
               height: MediaQuery.of(context).size.height / 2,
@@ -364,11 +353,11 @@ class _UploaderState extends State<Uploader> {
               children: [
                 ElevatedButton(
                   onPressed: selectFile,
-                  child: Text('Select File'),
-                ),
-                ElevatedButton(
-                  onPressed: uploadFile,
-                  child: Text('Upload!'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF333131),
+                  ),
+                  child: Text('Select File',
+                      style: TextStyle(fontSize: 20, color: Colors.white)),
                 ),
               ],
             ),
@@ -389,7 +378,8 @@ class _UploaderState extends State<Uploader> {
                   selectedDocumentType = newValue;
                 });
               },
-              items: documentTypes.map<DropdownMenuItem<String>>((String value) {
+              items: documentTypes
+                  .map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
@@ -430,29 +420,109 @@ class _UploaderState extends State<Uploader> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: customTagController,
-                        decoration: InputDecoration(
-                          hintText: 'Add Custom Tag',
-                          border: OutlineInputBorder(),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                            right: 1.0), // Adjust the right padding as needed
+                        child: TextField(
+                          controller: customTagController,
+                          decoration: InputDecoration(
+                            hintText: 'Add Custom Tag',
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
                     ),
-                    SizedBox(width: 10),
+                    SizedBox(width: 3),
                     ElevatedButton(
                       onPressed: () =>
                           addCustomTag(customTagController.text),
-                      child: Text('Add'),
+                      style: ElevatedButton.styleFrom(
+                        shape: CircleBorder(),
+                        backgroundColor: Colors.white60,
+                      ),
+                      child: Opacity(
+                        opacity: 0.5,
+                        child: Icon(
+                          Icons.add,
+                          color: Colors.black,
+                          size: 32,
+                        ),
+                      ),
                     ),
                   ],
+                ),
+
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: uploadFile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF333131),
+                  ),
+                  child: Text(
+                    'Upload!',
+                    style: TextStyle(fontSize: 20, color: Colors.white),
+                  ),
                 ),
               ],
             ),
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage),
+            label: 'Storage',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.upload), // You can customize the icon as needed
+            label: 'Upload',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search), // New search icon
+            label: 'Search',
+          ),
+        ],
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 2, // Index of the current page (Upload in this case)
+        selectedItemColor: Colors.blue,
+        onTap: (int index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => home()),
+              );
+              break;
+            case 1:
+            // Add logic to navigate to the storage page
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
+              );
+              break;
+            case 4:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SearchWidget()),
+              );
+              break;
+          }
+        },
+      ),
     );
   }
+
 }
 
 class TagWidget extends StatelessWidget {

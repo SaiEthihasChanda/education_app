@@ -1,8 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as storage;
+import 'package:path_provider/path_provider.dart';
+
+import 'package:test_flutter_1/uploader.dart';
 import 'main.dart';
+import 'search.dart';
+
 
 class UserProfilePage extends StatefulWidget {
   @override
@@ -50,9 +57,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('User Profile'),
-      ),
+
       body: _user != null
           ? Center(
         child: Padding(
@@ -84,6 +89,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ElevatedButton(
                 onPressed: () async {
                   await _auth.signOut();
+                  final Directory directory = await getApplicationDocumentsDirectory();
+                  final file = File('${directory.path}/creds.txt');
+                  file.delete();
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => LoginPage()),
@@ -98,6 +106,60 @@ class _UserProfilePageState extends State<UserProfilePage> {
       )
           : Center(
         child: CircularProgressIndicator(),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage),
+            label: 'Storage',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.upload), // Icon for upload page
+            label: 'Upload',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search), // Icon for current page
+            label: 'Search',
+          ),
+        ],
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 3, // Index of the current page (Search)
+        selectedItemColor: Colors.blue,
+        onTap: (int index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => home()),
+              );
+              break;
+            case 1:
+            // Add logic to navigate to the storage page
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Uploader()),
+              );
+              break;
+            case 3:
+              break;
+            case 4:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SearchWidget()),
+              );
+              break;
+          }
+        },
       ),
     );
   }

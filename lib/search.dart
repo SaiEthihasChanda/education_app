@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as storage;
+import 'package:test_flutter_1/uploader.dart';
+
+import 'package:intl/intl.dart';
+
+import 'User.dart';
 import 'documentview.dart';
-import 'package:intl/intl.dart'; // Import the intl package to format dates
+import 'main.dart'; // Import the intl package to format dates
 
 void main() {
   runApp(MaterialApp(
@@ -118,9 +123,7 @@ class _SearchWidgetState extends State<SearchWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Search'),
-      ),
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -302,6 +305,60 @@ class _SearchWidgetState extends State<SearchWidget> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage),
+            label: 'Storage',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.upload), // Icon for upload page
+            label: 'Upload',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search), // Icon for current page
+            label: 'Search',
+          ),
+        ],
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 4, // Index of the current page (Search)
+        selectedItemColor: Colors.blue,
+        onTap: (int index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => home()),
+              );
+              break;
+            case 1:
+            // Add logic to navigate to the storage page
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Uploader()),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
+              );
+            case 4:
+            // Add logic if needed when the search page is tapped again
+              break;
+          }
+        },
       ),
     );
   }
