@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import 'documentview.dart';
 import 'uploader.dart';
 import 'User.dart';
 import 'search.dart';
@@ -595,12 +596,253 @@ class home extends StatelessWidget {
             child: CircleAvatar(
               radius: 50,
               backgroundColor: Colors.grey[200],
-              backgroundImage: AssetImage('assets/placeholder_image.png'),
+              //backgroundImage: AssetImage('assets/placeholder_image.png'),
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 200.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Recently Viewed',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(width: 50),
+              SizedBox(
+                height: 150,
+                child: FutureBuilder<List<String>>(
+                  future: _getRecentFiles(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else {
+                      List<String> recentFiles = snapshot.data ?? [];
+                      return ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: recentFiles.length,
+                        itemBuilder: (context, index) {
+                          return FutureBuilder<DocumentSnapshot>(
+                            future: FirebaseFirestore.instance.collection('docs').doc(recentFiles[index]).get(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return SizedBox(
+                                  width: 150,
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                );
+                              } else if (snapshot.hasError) {
+                                return SizedBox(
+                                  width: 150,
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('Error: ${snapshot.error}'),
+                                    ),
+                                  ),
+                                );
+                              } else if (!snapshot.hasData || !snapshot.data!.exists) {
+                                return SizedBox(
+                                  width: 150,
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('Document not found'),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                String title = snapshot.data!.get('title');
+                                String docid = snapshot.data!.get('id');
+                                String contr = snapshot.data!.get('contributor');
+                                String cat = snapshot.data!.get('category');
+                                String date = snapshot.data!.get('date');
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DocumentView(
+                                            title: title,
+                                            contributor: contr,
+                                            category: cat,
+                                            date: date,
+                                            id: docid
+                                        ),
+                                      ),
+                                    );
+                                    print('Card clicked: $title');
+                                  },
+                                  child: SizedBox(
+                                    width: 150,
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          title,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold, // Make text bold
+                                          ),
+                                          maxLines: null, // Allow text to continue on the next line
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                child: Text(
+                  'Popular',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 150,
+                child: FutureBuilder<List<String>>(
+                  future: _getPopularFiles(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else {
+                      List<String> popularFiles = snapshot.data ?? [];
+                      return ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: popularFiles.length,
+                        itemBuilder: (context, index) {
+                          return FutureBuilder<DocumentSnapshot>(
+                            future: FirebaseFirestore.instance.collection('docs').doc(popularFiles[index]).get(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return SizedBox(
+                                  width: 150,
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                );
+                              } else if (snapshot.hasError) {
+                                return SizedBox(
+                                  width: 150,
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('Error: ${snapshot.error}'),
+                                    ),
+                                  ),
+                                );
+                              } else if (!snapshot.hasData || !snapshot.data!.exists) {
+                                return SizedBox(
+                                  width: 150,
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('Document not found'),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                String title = snapshot.data!.get('title');
+                                return SizedBox(
+                                  width: 150,
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(
+                                        title,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold, // Make text bold
+                                        ),
+                                        maxLines: null, // Allow text to continue on the next line
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+
+
+  Future<List<String>> _getRecentFiles() async {
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+    final String userEmail = _auth.currentUser!.email!;
+
+    try {
+      DocumentSnapshot userDocSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userEmail)
+          .get();
+
+      // Check if the user document exists and contains the recent10 attribute
+      if (!userDocSnapshot.exists || !(userDocSnapshot.data() as Map<String, dynamic>).containsKey('recent10')) {
+        print('empty recents');
+        return []; // Return an empty list if the recent10 attribute doesn't exist
+      }
+
+      List<dynamic> recentFiles = userDocSnapshot['recent10'];
+      List<String> recentFileNames = recentFiles.map((fileName) {
+        String name = fileName.toString();
+        if (name.endsWith('.pdf')) {
+          // Remove the ".pdf" extension
+          name = name.substring(0, name.length - 4);
+        }
+        return name;
+      }).toList();
+      print("recent files are $recentFileNames");
+      return recentFileNames;
+    } catch (e) {
+      print('Error getting recent files: $e');
+      return []; // Return an empty list in case of an error
+    }
+  }
+
+
+  Future<List<String>> _getPopularFiles() async {
+    // Add your logic to retrieve popular files
+    // For now, returning an empty list
+    return [];
   }
 }
 
