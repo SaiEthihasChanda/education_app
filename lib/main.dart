@@ -37,7 +37,7 @@ void main() async {
 
 
     runApp(MyApp());
-  
+
 }
 
 class MyApp extends StatelessWidget {
@@ -166,9 +166,9 @@ class _SignUpPageState extends State<SignUpPage> {
   File? _idFile;
 
   void pfpSet() async {
-    final status = await Permission.storage.request();
+    final status = await Permission.manageExternalStorage.request();
     if (status.isGranted) {
-      try {
+
         FilePickerResult? result = await FilePicker.platform.pickFiles();
         if (result != null) {
           setState(() {
@@ -177,17 +177,18 @@ class _SignUpPageState extends State<SignUpPage> {
             _profilePicName = pickedFile!.path!.split('/').last;
           });
         }
-      } catch (error) {
-        print(error);
-      }
+
+    }
+    else{
+      openAppSettings();
     }
   }
 
   Future<String> verify(String text) async {
-    String prompt = "im going to give you some text, i want you to  check if the college name"
-        "mentioned is a valid one or not... it may be not properly"
-        "given so preprocess it a bit...if it is valid just say yes or no."
-        " dont say anything else" + text;
+    String prompt = "can you please fix the following text and tell me if the college name "
+        "mentioned is an existing college... tell me yes or no"
+        "\n\n\n"
+        + text;
     String requestBody = jsonEncode({'content': prompt});
     try {
       var response = await http.post(
@@ -202,19 +203,25 @@ class _SignUpPageState extends State<SignUpPage> {
       if (response.statusCode == 200) {
         String R = jsonDecode(response.body);
         print("===============");
-        print(R);
+        print(R+"this is the part ur checking");
+        if(R.toLowerCase().contains("yes")){
+          return "yes";
+        }
+
         print("===============");
       } else {
         print('Failed to verify. Status code: ${response.statusCode}');
+        return "no";
       }
     } catch (error) {
       print('Error sending request: $error');
+      return "no";
     }
-    return "";
+    return "no";
   }
 
   void documentVerify() async {
-    final status = await Permission.storage.request();
+    final status = await Permission.manageExternalStorage.request();
     if (status.isGranted) {
       try {
         FilePickerResult? result = await FilePicker.platform.pickFiles();
@@ -228,21 +235,24 @@ class _SignUpPageState extends State<SignUpPage> {
         print(error);
       }
     }
+    else if(status.isPermanentlyDenied)
+    {
+    openAppSettings();
+    }
   }
 
   Future<void> _createAccount() async {
     String email = emailController.text;
     String username = usernameController.text;
     String password = passwordController.text;
-    try {
 
 
-      // Upload profile picture to Firebase Storage
+
+
       String profilePicId = DateTime.now().millisecondsSinceEpoch.toString();
-      // Generate unique ID for profile picture
+
       String profilePicPath = 'pfps/$profilePicId';
-
-
+      try{
 
 
 
@@ -264,10 +274,16 @@ class _SignUpPageState extends State<SignUpPage> {
         print(scanned);
         print("==========================");
         String verified = await verify(scanned);
+        print(verified+" is it verified???");
+
         if (verified == "yes") {
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
             email: email,
             password: password,
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => home()),
           );
           _saveCredentials(email, password);
           final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
@@ -277,26 +293,34 @@ class _SignUpPageState extends State<SignUpPage> {
             'type': _userType,
 
 
+
+
           };
           await userDoc.set(userData);
           SettableMetadata metadata = SettableMetadata(
             contentType: pickedFile!
                 .extension, // You can set content type dynamically based on the file type
           );
+          if(pickedFile != null){
+            await FirebaseStorage.instance.ref(profilePicPath).putFile(_profilePic!, metadata);
+          }
+
+
           await FirebaseStorage.instance.ref(profilePicPath).putFile(_profilePic!, metadata);
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => home()),
-          );
         }
       }
-      else if(_userType == 'student'){
+      else if(_userType == 'student') {
         await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
         _saveCredentials(email, password);
-        final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => home()),
+        );
+        final userDoc = FirebaseFirestore.instance.collection('users').doc(
+            email);
         final userData = {
           'username': username,
           'profilepic': profilePicId ?? '',
@@ -308,20 +332,16 @@ class _SignUpPageState extends State<SignUpPage> {
           contentType: pickedFile!
               .extension, // You can set content type dynamically based on the file type
         );
-        await FirebaseStorage.instance.ref(profilePicPath).putFile(_profilePic!, metadata);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => home()),
-        );
-
-
-
-
+        await FirebaseStorage.instance.ref(profilePicPath).putFile(
+            _profilePic!, metadata);
       }
 
-    } catch (e) {
-      print('Error: $e');
-    }
+
+      }catch(e){
+        print(e);
+      }
+
+
   }
 
   @override
@@ -446,7 +466,9 @@ class home extends StatelessWidget {
           Text(
             'ReadIt.',
             style: TextStyle(
-              fontSize: 30
+              fontSize: 50,
+              fontFamily: 'LobsterTwo',
+
             ),
 
 
@@ -598,22 +620,34 @@ class home extends StatelessWidget {
     );
   }
 
+
+
+
+
+
   Widget _buildHomeContent() {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 20.0),
+          padding: const EdgeInsets.only(top: 100.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'Recently Viewed',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Recently Viewed',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'roboto',
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                  ],
                 ),
               ),
               SizedBox(width: 50),
@@ -628,122 +662,18 @@ class home extends StatelessWidget {
                       return Text('Error: ${snapshot.error}');
                     } else {
                       List<String> recentFiles = snapshot.data ?? [];
-                      return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: recentFiles.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                            child: FutureBuilder<DocumentSnapshot>(
-                              future: FirebaseFirestore.instance.collection('docs').doc(recentFiles[index]).get(),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return SizedBox(
-                                    width: 180, // Adjust the width of each card
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(10.0),
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    ),
-                                  );
-                                } else if (snapshot.hasError) {
-                                  return SizedBox(
-                                    width: 180, // Adjust the width of each card
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text('Error: ${snapshot.error}'),
-                                      ),
-                                    ),
-                                  );
-                                } else if (!snapshot.hasData || !snapshot.data!.exists) {
-                                  return SizedBox(
-                                    width: 180, // Adjust the width of each card
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          'The requested file may have '
-                                              'been deleted due to privacy and security '
-                                              'reasons',
-                                          style: TextStyle(
-                                              color: Colors.red
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  String title = snapshot.data!.get('title') ?? 'Untitled';
-                                  String category = snapshot.data!.get('category') ?? 'General';
-                                  String date = snapshot.data!.get('date') ?? '';
-                                  String docid = snapshot.data!.get('id') ?? '';
-                                  String contr = snapshot.data!.get('contributor') ?? '';
-                                  int votes = snapshot.data!.get('votes') ?? '';
-                                  String pfp = snapshot.data!.get('userpfp') ?? '';
-
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => DocumentView(
-                                            title: title,
-                                            contributor: contr,
-                                            category: category,
-                                            date: date,
-                                            id: docid,
-                                            votes: votes,
-                                            pfp: pfp,
-                                          ),
-                                        ),
-                                      );
-                                      print('Card clicked: $title');
-                                    },
-                                    child: SizedBox(
-                                      width: 180, // Adjust the width of each card
-                                      child: Card(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                title,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold, // Make text bold
-                                                ),
-                                                maxLines: null, // Allow text to continue on the next line
-                                              ),
-                                              SizedBox(height: 8),
-                                              Text(
-                                                '$category'.toUpperCase(),
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.green,
-                                                ),
-                                              ),
-                                              SizedBox(height:30),
-                                              Text(
-                                                'Date: $date',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                              // Add more details if needed
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          );
-                        },
+                      return Padding(
+                        padding: EdgeInsets.only(top: 20.0),
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 10.0),
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: recentFiles.length,
+                            itemBuilder: (context, index) {
+                              return _buildDocumentCard(recentFiles[index]);
+                            },
+                          ),
+                        ),
                       );
                     }
                   },
@@ -754,8 +684,9 @@ class home extends StatelessWidget {
                 child: Text(
                   'Popular',
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    fontFamily: 'roboto',
                   ),
                 ),
               ),
@@ -770,67 +701,18 @@ class home extends StatelessWidget {
                       return Text('Error: ${snapshot.error}');
                     } else {
                       List<String> popularFiles = snapshot.data ?? [];
-                      return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: popularFiles.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: FutureBuilder<DocumentSnapshot>(
-                              future: FirebaseFirestore.instance.collection('docs').doc(popularFiles[index]).get(),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return SizedBox(
-                                    width: 180, // Adjust the width of each card
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    ),
-                                  );
-                                } else if (snapshot.hasError) {
-                                  return SizedBox(
-                                    width: 180, // Adjust the width of each card
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text('Error: ${snapshot.error}'),
-                                      ),
-                                    ),
-                                  );
-                                } else if (!snapshot.hasData || !snapshot.data!.exists) {
-                                  return SizedBox(
-                                    width: 180, // Adjust the width of each card
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text('Document not found'),
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  String title = snapshot.data!.get('title');
-                                  return SizedBox(
-                                    width: 180, // Adjust the width of each card
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          title,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold, // Make text bold
-                                          ),
-                                          maxLines: null, // Allow text to continue on the next line
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          );
-                        },
+                      return Padding(
+                        padding: EdgeInsets.only(top: 20.0),
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 10.0),
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: popularFiles.length,
+                            itemBuilder: (context, index) {
+                              return _buildDocumentCard(popularFiles[index]);
+                            },
+                          ),
+                        ),
                       );
                     }
                   },
@@ -842,6 +724,177 @@ class home extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildDocumentCard(String fileId) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance.collection('docs').doc(fileId).get(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _buildLoadingCard();
+          } else if (snapshot.hasError) {
+            return _buildErrorCard(snapshot.error.toString());
+          } else if (!snapshot.hasData || !snapshot.data!.exists) {
+            return _buildDeletedCard();
+          } else {
+            String title = snapshot.data!.get('title') ?? 'Untitled';
+            String category = snapshot.data!.get('category') ?? 'General';
+            String date = snapshot.data!.get('date') ?? '';
+            int votes = snapshot.data!.get('votes') ?? 0;
+            return GestureDetector(
+              onTap: () {
+                String contr = snapshot.data!.get('contributor') ?? '';
+                String pfp = snapshot.data!.get('userpfp') ?? '';
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DocumentView(
+                      title: title,
+                      contributor: contr,
+                      category: category,
+                      date: date,
+                      id: fileId,
+                      votes: votes,
+                      pfp: pfp,
+                    ),
+                  ),
+                );
+                print('Popular card clicked: $title');
+              },
+              child: _buildCardWidget(
+                title: title,
+                category: category,
+                date: date,
+                votes: votes,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardWidget({required String title, required String category, required String date, required int votes}) {
+    return SizedBox(
+      width: 200,
+      child: Card(
+        color: Colors.white, // Set the background color to white
+        elevation: 2, // Add elevation for a shadow effect
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8), // Apply rounded corners
+          side: BorderSide(color: Colors.black, width: 1), // Add a black border
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'roboto',
+                    ),
+                    maxLines: 2,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '$category'.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green,
+                      fontFamily: 'roboto',
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Icon(Icons.thumb_up),
+                        SizedBox(width: 4),
+                        Text(
+                          '$votes',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Date: $date',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildLoadingCard() {
+    return SizedBox(
+      width: 180,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(String errorMessage) {
+    return SizedBox(
+      width: 180,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text('Error: $errorMessage'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeletedCard() {
+    return SizedBox(
+      width: 180,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            'The requested file may have been deleted due to privacy and security reasons',
+            style: TextStyle(
+              color: Colors.red,
+              fontFamily: 'roboto',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+
 
 
 

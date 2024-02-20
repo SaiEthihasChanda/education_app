@@ -134,10 +134,23 @@ class _VaultPageState extends State<VaultPage> {
                       Text('Votes: $votes'),
                     ],
                   ),
-                  onTap: () {
-                    // Handle tap on the file
-                    // You can open the file or do other actions here
-                  },
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DocumentView(
+                            title: title,
+                            contributor: contributor,
+                            category: category,
+                            date: date,
+                            id: fileData['id'],
+                            votes: votes,
+                            pfp: userpfp,
+                          ),
+                        ),
+                      );
+                      print('Card clicked: $title');
+                    },
                 ),
               );
             }

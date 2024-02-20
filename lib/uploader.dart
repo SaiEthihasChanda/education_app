@@ -14,9 +14,9 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_storage/firebase_storage.dart' as storage;
 import 'package:intl/intl.dart';
-import 'package:test_flutter_1/User.dart';
-import 'package:test_flutter_1/main.dart';
-import 'package:test_flutter_1/search.dart';
+import 'User.dart';
+import 'main.dart';
+import 'search.dart';
 import 'vault.dart';
 
 class Uploader extends StatefulWidget {
@@ -183,32 +183,70 @@ class _UploaderState extends State<Uploader> {
 
       // Add document data to Firestore
       final doc = FirebaseFirestore.instance.collection('docs').doc(id);
-      final storage.Reference docref = storage.FirebaseStorage.instance.ref('pfps/${snapshot['profilepic']}');
-      final String url = await docref.getDownloadURL();
-      if (pickedFile!.extension == "pdf") {
-        final json = {
-          "tags": tags,
-          "title": titleController.text,
-          'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          'userpfp': url,
-          'category': selectedDocumentType!,
-          'contributor': snapshot['username'],
-          'id': id + ".pdf",
-          'votes': 0
 
-        };
-        await doc.set(json);
-      } else {
-        final json = {
-          "tags": tags,
-          "title": titleController.text,
-          'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          'userpfp': url,
-          'category': selectedDocumentType!,
-          'contributor': snapshot['username'],
-          'id': id
-        };
-        await doc.set(json);
+      final storage.Reference docref = storage.FirebaseStorage.instance.ref('pfps/${snapshot['profilepic']}');
+
+      try {
+        final String url = await docref.getDownloadURL();
+
+        // The getDownloadURL call was successful, include 'userpfp' in the JSON
+        if (pickedFile!.extension == "pdf") {
+          final json = {
+            "tags": tags,
+            "title": titleController.text,
+            'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            'userpfp': url,
+            'category': selectedDocumentType!,
+            'contributor': snapshot['username'],
+            'id': id + ".pdf",
+            'votes': 0
+          };
+          await doc.set(json);
+        } else {
+          final json = {
+            "tags": tags,
+            "title": titleController.text,
+            'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            'userpfp': url,
+            'category': selectedDocumentType!,
+            'contributor': snapshot['username'],
+            'id': id,
+            'votes': 0
+          };
+          await doc.set(json);
+        }
+      } catch (error) {
+        // Handle the case when getDownloadURL fails
+        print('Error getting download URL: $error');
+
+        // You can choose to set 'userpfp' to a default value or handle it differently
+        // For example, set it to an empty string or a placeholder URL
+        final defaultUserpfp = ''; // Set to a default value
+        if (pickedFile!.extension == "pdf") {
+          final json = {
+            "tags": tags,
+            "title": titleController.text,
+            'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            'userpfp': defaultUserpfp,
+            'category': selectedDocumentType!,
+            'contributor': snapshot['username'],
+            'id': id + ".pdf",
+            'votes': 0
+          };
+          await doc.set(json);
+        } else {
+          final json = {
+            "tags": tags,
+            "title": titleController.text,
+            'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            'userpfp': defaultUserpfp,
+            'category': selectedDocumentType!,
+            'contributor': snapshot['username'],
+            'id': id,
+            'votes': 0
+          };
+          await doc.set(json);
+        }
       }
 
       //debugPrint('File uploaded successfully to: $ref.fullPath');
@@ -217,7 +255,10 @@ class _UploaderState extends State<Uploader> {
     } finally {
       setState(() {
         loading = false;
-        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => home()),
+        );
       });
     }
   }
@@ -233,10 +274,10 @@ class _UploaderState extends State<Uploader> {
   }
 
   Future<void> selectFile() async {
-    final status = await Permission.storage.request();
+    final status = await Permission.manageExternalStorage.request();
 
     if (status.isGranted) {
-      try {
+
         FilePickerResult? result = await FilePicker.platform.pickFiles();
         if (result != null) {
           setState(() {
@@ -275,9 +316,7 @@ class _UploaderState extends State<Uploader> {
             tags = fetchedTags;
           });
         }
-      } catch (error) {
-        debugPrint('Error selecting file: $error');
-      }
+
     } else {
       showDialog(
         context: context,

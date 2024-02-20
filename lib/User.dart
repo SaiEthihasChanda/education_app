@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as storage;
 import 'package:path_provider/path_provider.dart';
 
-import 'package:test_flutter_1/uploader.dart';
+import 'uploader.dart';
 import 'vault.dart';
 import 'main.dart';
 import 'search.dart';
