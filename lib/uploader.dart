@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_ml_kit/google_ml_kit.dart' as ml;
@@ -11,10 +12,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_storage/firebase_storage.dart' as storage;
 import 'package:intl/intl.dart';
 import 'package:test_flutter_1/User.dart';
 import 'package:test_flutter_1/main.dart';
 import 'package:test_flutter_1/search.dart';
+import 'vault.dart';
 
 class Uploader extends StatefulWidget {
   @override
@@ -159,6 +162,7 @@ class _UploaderState extends State<Uploader> {
             'file-name': fileName,
             'tags': jsonEncode(tags),
             'title': titleController.text,
+
           },
         );
         await ref.putFile(File(pickedFile!.path!), metadata);
@@ -179,15 +183,19 @@ class _UploaderState extends State<Uploader> {
 
       // Add document data to Firestore
       final doc = FirebaseFirestore.instance.collection('docs').doc(id);
+      final storage.Reference docref = storage.FirebaseStorage.instance.ref('pfps/${snapshot['profilepic']}');
+      final String url = await docref.getDownloadURL();
       if (pickedFile!.extension == "pdf") {
         final json = {
           "tags": tags,
           "title": titleController.text,
           'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          'userpfp': snapshot['profilepic'],
+          'userpfp': url,
           'category': selectedDocumentType!,
           'contributor': snapshot['username'],
-          'id': id + ".pdf"
+          'id': id + ".pdf",
+          'votes': 0
+
         };
         await doc.set(json);
       } else {
@@ -195,7 +203,7 @@ class _UploaderState extends State<Uploader> {
           "tags": tags,
           "title": titleController.text,
           'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          'userpfp': snapshot['profilepic'],
+          'userpfp': url,
           'category': selectedDocumentType!,
           'contributor': snapshot['username'],
           'id': id
@@ -503,7 +511,10 @@ class _UploaderState extends State<Uploader> {
               );
               break;
             case 1:
-            // Add logic to navigate to the storage page
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => VaultPage()),
+              );
               break;
             case 3:
               Navigator.pushReplacement(

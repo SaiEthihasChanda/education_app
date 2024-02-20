@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart' as storage;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:test_flutter_1/uploader.dart';
+import 'vault.dart';
 import 'main.dart';
 import 'search.dart';
 
@@ -90,7 +91,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   final Directory directory =
                   await getApplicationDocumentsDirectory();
                   final file = File('${directory.path}/creds.txt');
-                  file.delete();
+                  final Directory dir = await getApplicationDocumentsDirectory();
+                  final File fil = File('${directory.path}/creds.txt');
+                  final String data = ' | ';
+                  await fil.writeAsString(data);
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => LoginPage()),
@@ -198,7 +202,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
               );
               break;
             case 1:
-            // Add logic to navigate to the storage page
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => VaultPage()),
+              );
               break;
             case 2:
               Navigator.pushReplacement(

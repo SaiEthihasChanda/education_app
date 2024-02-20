@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as storage;
 import 'package:test_flutter_1/uploader.dart';
 import 'package:intl/intl.dart';
+import 'vault.dart';
 import 'User.dart';
 import 'documentview.dart';
 import 'main.dart';
@@ -48,7 +49,8 @@ class _SearchWidgetState extends State<SearchWidget> {
       setState(() {
         _username = snapshot['username'];
         _type = snapshot['type'];
-        _documentid = snapshot['id'];
+        //_documentid = snapshot['id'];
+        print("image name are"+snapshot['profilepic']);
         storage.Reference ref =
         storage.FirebaseStorage.instance.ref('uploads/$_documentid');
         ref.getDownloadURL().then((url) {
@@ -61,11 +63,13 @@ class _SearchWidgetState extends State<SearchWidget> {
         });
 
         String _profileImage = snapshot['profilepic'];
-        storage.Reference docref =
+        print("url codes are"+_profileImage);
+        ref =
         storage.FirebaseStorage.instance.ref('pfps/$_profileImage');
-        ref.getDownloadURL().then((url) {
+        ref.getDownloadURL().then((url) { // Changed ref to docref
           setState(() {
-            _profileImageUrl = url;
+            _profileImageUrl = url; // Fixed typo here
+            print("url is" + _profileImageUrl);
           });
         }).catchError((error) {
           print('Error getting download URL: $error');
@@ -73,6 +77,7 @@ class _SearchWidgetState extends State<SearchWidget> {
       });
     }
   }
+
 
   Future<void> _search() async {
     String searchText = _searchController.text.toLowerCase();
@@ -105,6 +110,9 @@ class _SearchWidgetState extends State<SearchWidget> {
         }
       }
 
+      // Sort the matching documents by descending order of votes
+      matchingDocuments.sort((a, b) => (b['votes'] ?? 0).compareTo(a['votes'] ?? 0));
+
       print("Matching Documents: $matchingDocuments");
       setState(() {
         _searchResults = matchingDocuments;
@@ -113,6 +121,7 @@ class _SearchWidgetState extends State<SearchWidget> {
       print("Failed to fetch documents: $error");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -154,22 +163,21 @@ class _SearchWidgetState extends State<SearchWidget> {
                   String category = documentData['category'] ?? 'Unknown';
                   String date = documentData['date'] ?? '';
                   String docid = documentData['id'] ?? '';
+                  int votes = documentData['votes'] ?? 0;
+                  String pfp = documentData['userpfp']??'';
+                  print(pfp);
 
                   return GestureDetector(
                     onTap: () async {
                       String userEmail = _auth.currentUser!.email!;
-                      DocumentReference userDocRef =
-                      FirebaseFirestore.instance.collection('users').doc(userEmail);
-                      DocumentSnapshot userDocSnapshot =
-                      await userDocRef.get();
+                      DocumentReference userDocRef = FirebaseFirestore.instance.collection('users').doc(userEmail);
+                      DocumentSnapshot userDocSnapshot = await userDocRef.get();
 
-                      if (!userDocSnapshot.exists ||
-                          !(userDocSnapshot.data() as Map<String, dynamic>).containsKey('recent10')) {
+                      if (!userDocSnapshot.exists || !(userDocSnapshot.data() as Map<String, dynamic>).containsKey('recent10')) {
                         await userDocRef.set({'recent10': []}, SetOptions(merge: true));
                       }
 
-                      List<String> recent10 =
-                      List<String>.from(userDocSnapshot['recent10'] ?? []);
+                      List<String> recent10 = List<String>.from(userDocSnapshot['recent10'] ?? []);
 
                       if (!recent10.contains(docid)) {
                         recent10.add(docid);
@@ -184,15 +192,18 @@ class _SearchWidgetState extends State<SearchWidget> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => DocumentView(
-                              title: title,
-                              contributor: contributor,
-                              category: category,
-                              date: date,
-                              id: docid
+                            title: title,
+                            contributor: contributor,
+                            category: category,
+                            date: date,
+                            id: docid,
+                            votes: votes,
+                            pfp:pfp
                           ),
                         ),
                       );
                     },
+
                     child: Card(
                       elevation: 3,
                       margin: EdgeInsets.symmetric(
@@ -221,13 +232,23 @@ class _SearchWidgetState extends State<SearchWidget> {
                             ),
                             SizedBox(height: 10),
                             Row(
+                              children: [
+                                Text(
+                                  '$votes Likes',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 10),
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 CircleAvatar(
                                   radius: 20,
-                                  backgroundImage: _profileImageUrl.isNotEmpty
-                                      ? NetworkImage(_profileImageUrl) as ImageProvider<Object>?
-                                      : AssetImage('assets/placeholder.jpg'),
+                                  backgroundImage: NetworkImage(pfp),
                                 ),
                                 SizedBox(width: 10),
                                 Flexible(
@@ -277,6 +298,7 @@ class _SearchWidgetState extends State<SearchWidget> {
                     ),
                   );
                 },
+
               )
                   : Center(
                 child: Text('No results found'),
@@ -326,7 +348,10 @@ class _SearchWidgetState extends State<SearchWidget> {
               );
               break;
             case 1:
-            // Add logic to navigate to the storage page
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => VaultPage()),
+              );
               break;
             case 2:
               Navigator.pushReplacement(
@@ -378,7 +403,10 @@ class _SearchWidgetState extends State<SearchWidget> {
               );
               break;
             case 1:
-            // Add logic to navigate to the storage page
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => VaultPage()),
+              );
               break;
             case 2:
               Navigator.pushReplacement(

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import 'User.dart';
+import 'vault.dart';
 import 'documentview.dart';
 
 
@@ -275,6 +276,7 @@ class _SignUpPageState extends State<SignUpPage> {
             'profilepic': profilePicId ?? '',
             'type': _userType,
 
+
           };
           await userDoc.set(userData);
           SettableMetadata metadata = SettableMetadata(
@@ -506,12 +508,16 @@ class home extends StatelessWidget {
                       // Add logic to navigate to the home page
                         break;
                       case 1:
-                      // Add logic to navigate to the storage page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => VaultPage()),
+                        );
                         break;
                       case 2:
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => Uploader()),
+
                         );
                         break;
                       case 3:
@@ -562,7 +568,11 @@ class home extends StatelessWidget {
                       // Add logic to navigate to the home page
                         break;
                       case 1:
-                      // Add logic to navigate to the storage page
+                        Navigator.pushReplacement(
+
+                          context,
+                          MaterialPageRoute(builder: (context) => VaultPage()),
+                        );
                         break;
                       case 2:
                         Navigator.pushReplacement(
@@ -591,7 +601,6 @@ class home extends StatelessWidget {
   Widget _buildHomeContent() {
     return Stack(
       children: [
-
         Padding(
           padding: const EdgeInsets.only(top: 20.0),
           child: Column(
@@ -602,7 +611,7 @@ class home extends StatelessWidget {
                 child: Text(
                   'Recently Viewed',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -654,16 +663,25 @@ class home extends StatelessWidget {
                                     child: Card(
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
-                                        child: Text('Document not found'),
+                                        child: Text(
+                                          'The requested file may have '
+                                              'been deleted due to privacy and security '
+                                              'reasons',
+                                          style: TextStyle(
+                                              color: Colors.red
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   );
                                 } else {
-                                  String title = snapshot.data!.get('title');
-                                  String docid = snapshot.data!.get('id');
-                                  String contr = snapshot.data!.get('contributor');
-                                  String cat = snapshot.data!.get('category');
-                                  String date = snapshot.data!.get('date');
+                                  String title = snapshot.data!.get('title') ?? 'Untitled';
+                                  String category = snapshot.data!.get('category') ?? 'General';
+                                  String date = snapshot.data!.get('date') ?? '';
+                                  String docid = snapshot.data!.get('id') ?? '';
+                                  String contr = snapshot.data!.get('contributor') ?? '';
+                                  int votes = snapshot.data!.get('votes') ?? '';
+                                  String pfp = snapshot.data!.get('userpfp') ?? '';
 
                                   return GestureDetector(
                                     onTap: () {
@@ -673,9 +691,11 @@ class home extends StatelessWidget {
                                           builder: (context) => DocumentView(
                                             title: title,
                                             contributor: contr,
-                                            category: cat,
+                                            category: category,
                                             date: date,
                                             id: docid,
+                                            votes: votes,
+                                            pfp: pfp,
                                           ),
                                         ),
                                       );
@@ -697,6 +717,21 @@ class home extends StatelessWidget {
                                                 maxLines: null, // Allow text to continue on the next line
                                               ),
                                               SizedBox(height: 8),
+                                              Text(
+                                                '$category'.toUpperCase(),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.green,
+                                                ),
+                                              ),
+                                              SizedBox(height:30),
+                                              Text(
+                                                'Date: $date',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
                                               // Add more details if needed
                                             ],
                                           ),
@@ -719,7 +754,7 @@ class home extends StatelessWidget {
                 child: Text(
                   'Popular',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -810,6 +845,7 @@ class home extends StatelessWidget {
 
 
 
+
   Future<List<String>> _getRecentFiles() async {
     final FirebaseAuth _auth = FirebaseAuth.instance;
     final String userEmail = _auth.currentUser!.email!;
@@ -827,6 +863,7 @@ class home extends StatelessWidget {
       }
 
       List<dynamic> recentFiles = userDocSnapshot['recent10'];
+
       List<String> recentFileNames = recentFiles.map((fileName) {
         String name = fileName.toString();
         if (name.endsWith('.pdf')) {
@@ -845,23 +882,54 @@ class home extends StatelessWidget {
 
 
   Future<List<String>> _getPopularFiles() async {
-    // Add your logic to retrieve popular files
-    // For now, returning an empty list
-    return [];
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('docs')
+          .orderBy('votes', descending: true) // Sort documents by 'votes' field in descending order
+          .limit(10) // Limit the results to 10 documents, adjust as needed
+          .get();
+
+      List<String> popularFileIds = snapshot.docs.map((doc) => doc.id).toList();
+      return popularFileIds;
+    } catch (e) {
+      print('Error getting popular files: $e');
+      return []; // Return an empty list in case of an error
+    }
   }
 }
 
 Future<String> _getUserInfo() async {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final User _user = _auth.currentUser!;
-  final DocumentSnapshot snapshot = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(_user.email)
-      .get();
-  if (snapshot.exists) {
-    return snapshot['type'].toString();
-  } else {
-    return 'student'; // Default value if user data doesn't exist
+  try {
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+    final User _user = _auth.currentUser!;
+    final DocumentSnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.email)
+        .get();
+
+    if (snapshot.exists) {
+      final userType = snapshot['type'].toString();
+
+      // Check if the "liked" attribute exists, if not, create it
+      if (!(snapshot.data() as Map<String, dynamic>).containsKey('liked')) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user.email)
+            .set({'liked': []}, SetOptions(merge: true));
+      }
+
+      return userType;
+    } else {
+      // If user data doesn't exist, return 'student' and create the 'liked' attribute
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user.email)
+          .set({'liked': []}, SetOptions(merge: true));
+      return 'student';
+    }
+  } catch (error) {
+    print('Error getting user info: $error');
+    return 'student'; // Default value if there's an error
   }
 }
 
