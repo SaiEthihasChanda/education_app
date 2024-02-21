@@ -104,13 +104,18 @@ class _VaultPageState extends State<VaultPage> {
               String category = fileData['category'] ?? 'General';
               // Now, create the card with retrieved data
               return Card(
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8), // Apply rounded corners
+                  side: BorderSide(color: Colors.black, width: 1), // Add a black border
+                ),
                 child: ListTile(
                   title: Text(title),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Contributor: $contributor'),
-                      Text('Date: $date'),
+                      Text('By: $contributor'),
+                      Text('$date'),
                       // Add more information here as needed
                     ],
                   ),
@@ -210,13 +215,15 @@ class _VaultPageState extends State<VaultPage> {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => home()),
+
                     );
                     break;
-                    break;
+
                   case 2:
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => Uploader()),
+
                     );
                     break;
                   case 3:

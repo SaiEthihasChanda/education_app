@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart' as storage;
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+
 import 'package:http/http.dart' as http;
 
 class DocumentView extends StatefulWidget {
@@ -181,8 +182,8 @@ class _DocumentViewState extends State<DocumentView> {
                 Text(
                   widget.category.toUpperCase(),
                   style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.green
+                    fontSize: 16,
+                    color: Colors.green,
                   ),
                 ),
                 Text(
@@ -201,7 +202,13 @@ class _DocumentViewState extends State<DocumentView> {
                   child: SizedBox(
                     height: 98,
                     child: Card(
-                      elevation: 4,
+                      color: Colors.white,
+
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8), // Apply rounded corners
+                        side: BorderSide(color: Colors.black, width: 1), // Add a black border
+                      ),
                       child: Padding(
                         padding: EdgeInsets.all(8),
                         child: Row(
@@ -223,7 +230,9 @@ class _DocumentViewState extends State<DocumentView> {
                                 ),
                                 SizedBox(height: 6),
                                 Text(
-                                  widget.contributor.length > 20 ? widget.contributor.substring(0, 15) + "..." : widget.contributor,
+
+                                  widget.contributor.length>15?widget.contributor.substring(0, 15)
+                                  :widget.contributor,
                                   style: TextStyle(fontSize: 18),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
@@ -240,8 +249,7 @@ class _DocumentViewState extends State<DocumentView> {
                 // Like count and like button
                 Expanded(
                   flex: 1,
-                  child:
-                  StreamBuilder<DocumentSnapshot>(
+                  child: StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.email!).snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -251,7 +259,12 @@ class _DocumentViewState extends State<DocumentView> {
                       final documentId = widget.id.endsWith('.pdf') ? widget.id.substring(0, widget.id.length - 4) : widget.id;
                       final isLiked = likedDocuments.contains(documentId);
                       return Card(
-                        elevation: 4,
+                        elevation: 2,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8), // Apply rounded corners
+                          side: BorderSide(color: Colors.black, width: 1), // Add a black border
+                        ),
                         child: Padding(
                           padding: EdgeInsets.all(8),
                           child: Column(
@@ -262,6 +275,7 @@ class _DocumentViewState extends State<DocumentView> {
                               ),
                               SizedBox(height: 4),
                               ElevatedButton(
+
                                 onPressed: () async {
                                   if (likedDocuments.contains(documentId)) {
                                     await toggleLike(false);
@@ -269,10 +283,13 @@ class _DocumentViewState extends State<DocumentView> {
                                     await toggleLike(true);
                                   }
                                 },
-                                child: isLiked ? Icon(Icons.thumb_up, color: Colors.white) : Icon(Icons.thumb_up_outlined, color: Colors.white),
+                                child: isLiked ? Icon(Icons.thumb_up, color: Colors.black) : Icon(Icons.thumb_up_outlined, color: Colors.black),
                                 style: ElevatedButton.styleFrom(
+
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(5.0),
+                                      side: BorderSide(color: Colors.black, width: 1),
+
                                   ),
                                 ),
                               ),
@@ -285,40 +302,23 @@ class _DocumentViewState extends State<DocumentView> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
-            // Download and View buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // View button
-                ElevatedButton(
-                  onPressed: () {
-                    // Implement view functionality
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.remove_red_eye, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text('View', style: TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                ),
-                // Download button
-                ElevatedButton(
-                  onPressed: isDownloaded ? null : downloadFile,
-                  child: Row(
-                    children: [
-                      isDownloaded
-                          ? Icon(Icons.check, color: Colors.white)
-                          : Icon(Icons.download, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(isDownloaded ? 'Downloaded' : 'Download',
-                          style: TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                ),
-              ],
+            SizedBox(height: 10), // Reduced the height here
+            // Download button
+            ElevatedButton(
+              onPressed: isDownloaded ? null : downloadFile,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center, // Centering the contents horizontally
+                children: [
+                  isDownloaded
+                      ? Icon(Icons.check, color: Colors.black)
+                      : Icon(Icons.download, color: Colors.black),
+                  SizedBox(width: 8),
+                  Text(isDownloaded ? 'File saved' : 'Save File',
+                      style: TextStyle(fontSize: 16)),
+                ],
+              ),
             ),
+
 
             SizedBox(height: 20),
             Expanded(
@@ -335,20 +335,31 @@ class _DocumentViewState extends State<DocumentView> {
 
 
 
+
+
+
+
   Widget _buildDocumentWidget() {
     if (isLoading) {
       return Center(child: CircularProgressIndicator());
     } else if (documentUrl != null && documentUrl!.toLowerCase().endsWith('.pdf')) {
-      return PDFView(
-        filePath: documentUrl!,
+      return Center(
+        child: PDFView(
+          filePath: documentUrl!,
+        ),
       );
     } else if (documentUrl != null) {
-      return Image.network(
-        documentUrl!,
-        fit: BoxFit.contain,
+      return Center(
+        child: Image.network(
+          documentUrl!,
+          fit: BoxFit.contain,
+        ),
       );
     } else {
-      return Text('Document URL is null');
+      return Center(
+        child: Text('Document URL is null'),
+      );
     }
   }
+
 }

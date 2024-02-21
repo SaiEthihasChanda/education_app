@@ -86,7 +86,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ),
               SizedBox(height: 30),
               ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                      return Colors.white; // Set background color to white
+                    },
+                  ),
+                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0), // Adjust border radius as needed
+                      side: BorderSide(color: Colors.black), // Add black border
+                    ),
+                  ),
+                ),
                 onPressed: () async {
+
                   await _auth.signOut();
                   final Directory directory =
                   await getApplicationDocumentsDirectory();

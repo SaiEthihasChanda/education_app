@@ -37,7 +37,7 @@ void main() async {
   );
 
 
-    runApp(MyApp());
+  runApp(MyApp());
 
 }
 
@@ -70,6 +70,15 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Text(
+                  "ReadIt.",
+                style: TextStyle(
+                  fontSize: 90,
+                  fontFamily: "LobsterTwo",
+                ),
+
+              ),
+              SizedBox(height: 40),
               Container(
                 width: 200,
                 child: TextField(
@@ -137,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
                     MaterialPageRoute(builder: (context) => SignUpPage()),
                   );
                 },
-                child: Text('Sign Up'),
+                child: Text('Dont have an account? Sign Up'),
               ),
             ],
           ),
@@ -170,14 +179,14 @@ class _SignUpPageState extends State<SignUpPage> {
     final status = await Permission.manageExternalStorage.request();
     if (status.isGranted) {
 
-        FilePickerResult? result = await FilePicker.platform.pickFiles();
-        if (result != null) {
-          setState(() {
-            pickedFile = result.files.first;
-            _profilePic = File(pickedFile!.path!);
-            _profilePicName = pickedFile!.path!.split('/').last;
-          });
-        }
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result != null) {
+        setState(() {
+          pickedFile = result.files.first;
+          _profilePic = File(pickedFile!.path!);
+          _profilePicName = pickedFile!.path!.split('/').last;
+        });
+      }
 
     }
     else{
@@ -238,7 +247,7 @@ class _SignUpPageState extends State<SignUpPage> {
     }
     else if(status.isPermanentlyDenied)
     {
-    openAppSettings();
+      openAppSettings();
     }
   }
 
@@ -250,10 +259,10 @@ class _SignUpPageState extends State<SignUpPage> {
 
 
 
-      String profilePicId = DateTime.now().millisecondsSinceEpoch.toString();
+    String profilePicId = DateTime.now().millisecondsSinceEpoch.toString();
 
-      String profilePicPath = 'pfps/$profilePicId';
-      try{
+    String profilePicPath = 'pfps/$profilePicId';
+    try{
 
 
 
@@ -338,9 +347,9 @@ class _SignUpPageState extends State<SignUpPage> {
       }
 
 
-      }catch(e){
-        print(e);
-      }
+    }catch(e){
+      print(e);
+    }
 
 
   }
@@ -349,8 +358,8 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sign Up'),
-        backgroundColor: Colors.blue,
+        title: Text(' Sign Up'),
+        backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -430,20 +439,21 @@ class _SignUpPageState extends State<SignUpPage> {
               if (_userType == 'contributor') ...[
                 SizedBox(height: 20),
                 Visibility(
-                  visible: _idFile == null,
+
                   child: Text(
-                    'Upload ID from your registered College/University',
+                    _idFile==null?'Upload ID from your registered College/University'
+                    :"selected file: "+_idFile.toString(),
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
                 SizedBox(height: 10),
-                Visibility(
-                  visible: _idFile == null,
-                  child: ElevatedButton(
+
+
+                  ElevatedButton(
                     onPressed: documentVerify,
                     child: Text('Upload Document'),
                   ),
-                ),
+
               ],
               SizedBox(height: 20),
               ElevatedButton(
@@ -464,13 +474,13 @@ class home extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title:
-          Text(
-            'ReadIt.',
-            style: TextStyle(
-              fontSize: 50,
-              fontFamily: 'LobsterTwo',
+        Text(
+          'ReadIt.',
+          style: TextStyle(
+            fontSize: 50,
+            fontFamily: 'LobsterTwo',
 
-            ),
+          ),
 
 
         ),
@@ -644,9 +654,9 @@ class home extends StatelessWidget {
                         TypewriterAnimatedText(
                           'Recently Viewed',
                           textStyle: const TextStyle(
-                            fontSize: 18.0,
-                            fontFamily: 'roboto',
-                            fontWeight: FontWeight.bold
+                              fontSize: 18.0,
+                              fontFamily: 'roboto',
+                              fontWeight: FontWeight.bold
 
                           ),
                           speed: const Duration(milliseconds: 200),
@@ -698,9 +708,9 @@ class home extends StatelessWidget {
                     TypewriterAnimatedText(
                       'Popular',
                       textStyle: const TextStyle(
-                        fontSize: 18.0,
-                        fontFamily: 'roboto',
-                        fontWeight: FontWeight.bold
+                          fontSize: 18.0,
+                          fontFamily: 'roboto',
+                          fontWeight: FontWeight.bold
 
                       ),
                       speed: const Duration(milliseconds: 500),
@@ -824,7 +834,7 @@ class home extends StatelessWidget {
                           fontSize: 18, // Adjust as needed based on lineHeight
                           fontFamily: 'roboto',
                           fontWeight: FontWeight.bold,
-                           // Experiment with smaller values (0.8-0.95)
+                          // Experiment with smaller values (0.8-0.95)
                           // maxLines: 2, // Optionally set max lines if font scaling isn't enough
                           // softWrap: true, // Consider for line wrapping, but breaks typewriter effect
                         ),
@@ -842,9 +852,9 @@ class home extends StatelessWidget {
                       TypewriterAnimatedText(
                         category.toUpperCase(),
                         textStyle: const TextStyle(
-                          fontSize: 14.0,
-                          fontFamily: 'roboto',
-                          color: Colors.green
+                            fontSize: 14.0,
+                            fontFamily: 'roboto',
+                            color: Colors.green
 
                         ),
                         speed: const Duration(milliseconds:10 ),
