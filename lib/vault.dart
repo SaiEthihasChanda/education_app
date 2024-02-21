@@ -63,7 +63,9 @@ class _VaultPageState extends State<VaultPage> {
       itemCount: _files.length,
       itemBuilder: (context, index) {
         File file = _files[index];
-        String fileName = file.path.split('/').last;
+        String fileName = file.path
+            .split('/')
+            .last;
 
         // Check if the file name ends with ".pdf"
         if (fileName.endsWith('.pdf')) {
@@ -72,7 +74,9 @@ class _VaultPageState extends State<VaultPage> {
         }
 
         return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('docs').doc(fileName).get(),
+          future: FirebaseFirestore.instance.collection('docs')
+              .doc(fileName)
+              .get(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return ListTile(
@@ -95,19 +99,24 @@ class _VaultPageState extends State<VaultPage> {
                 title: Text('File not found: $fileName'),
               );
             } else {
-              Map<String, dynamic> fileData = snapshot.data!.data() as Map<String, dynamic>;
+              Map<String, dynamic> fileData = snapshot.data!.data() as Map<
+                  String,
+                  dynamic>;
               String title = fileData['title'] ?? 'Untitled';
               String contributor = fileData['contributor'] ?? 'Unknown';
               String date = fileData['date'] ?? '';
-              String userpfp = fileData['userpfp'] ?? ''; // Assuming this is the profile picture URL
+              String userpfp = fileData['userpfp'] ??
+                  ''; // Assuming this is the profile picture URL
               int votes = fileData['votes'] ?? 0;
               String category = fileData['category'] ?? 'General';
               // Now, create the card with retrieved data
               return Card(
                 color: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8), // Apply rounded corners
-                  side: BorderSide(color: Colors.black, width: 1), // Add a black border
+                  borderRadius: BorderRadius.circular(8),
+                  // Apply rounded corners
+                  side: BorderSide(
+                      color: Colors.black, width: 1), // Add a black border
                 ),
                 child: ListTile(
                   title: Text(title),
@@ -120,7 +129,8 @@ class _VaultPageState extends State<VaultPage> {
                     ],
                   ),
                   leading: CircleAvatar(
-                    backgroundImage: NetworkImage(userpfp), // Assuming userpfp is the URL to the profile picture
+                    backgroundImage: NetworkImage(
+                        userpfp), // Assuming userpfp is the URL to the profile picture
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -139,23 +149,24 @@ class _VaultPageState extends State<VaultPage> {
                       Text('Votes: $votes'),
                     ],
                   ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DocumentView(
-                            title: title,
-                            contributor: contributor,
-                            category: category,
-                            date: date,
-                            id: fileData['id'],
-                            votes: votes,
-                            pfp: userpfp,
-                          ),
-                        ),
-                      );
-                      print('Card clicked: $title');
-                    },
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            DocumentView(
+                              title: title,
+                              contributor: contributor,
+                              category: category,
+                              date: date,
+                              id: fileData['id'],
+                              votes: votes,
+                              pfp: userpfp,
+                            ),
+                      ),
+                    );
+                    print('Card clicked: $title');
+                  },
                 ),
               );
             }
@@ -177,7 +188,8 @@ class _VaultPageState extends State<VaultPage> {
           return Container();
         } else {
           // If the future completes successfully, build the bottom navigation bar based on the retrieved data
-          final userType = snapshot.data ?? 'student'; // Default value if data is null
+          final userType = snapshot.data ??
+              'student'; // Default value if data is null
           if (userType == "contributor") {
             return BottomNavigationBar(
               items: <BottomNavigationBarItem>[
@@ -203,7 +215,8 @@ class _VaultPageState extends State<VaultPage> {
                 ),
               ],
               type: BottomNavigationBarType.fixed,
-              currentIndex: 1, // Set the current index to 1 for the VaultPage
+              currentIndex: 1,
+              // Set the current index to 1 for the VaultPage
               selectedItemColor: Colors.blue,
               onTap: (int index) {
                 // Handle navigation based on the tapped index
@@ -229,7 +242,8 @@ class _VaultPageState extends State<VaultPage> {
                   case 3:
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => UserProfilePage()),
+                      MaterialPageRoute(
+                          builder: (context) => UserProfilePage()),
                     );
                     break;
                   case 4: // Search button tapped
@@ -263,7 +277,8 @@ class _VaultPageState extends State<VaultPage> {
                 ),
               ],
               type: BottomNavigationBarType.fixed,
-              currentIndex: 1, // Set the current index to 1 for the VaultPage
+              currentIndex: 1,
+              // Set the current index to 1 for the VaultPage
               selectedItemColor: Colors.blue,
               onTap: (int index) {
                 // Handle navigation based on the tapped index
@@ -280,7 +295,8 @@ class _VaultPageState extends State<VaultPage> {
                   case 2:
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => UserProfilePage()),
+                      MaterialPageRoute(
+                          builder: (context) => UserProfilePage()),
                     );
                     break;
                   case 3:
@@ -299,8 +315,17 @@ class _VaultPageState extends State<VaultPage> {
   }
 
   Future<String> _getUserInfo() async {
-    // Add your logic to retrieve user information (e.g., user type)
-    // For now, returning a default value
-    return 'student';
+    _user = _auth.currentUser!;
+    DocumentSnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.email)
+        .get();
+    if (snapshot.exists) {
+      return snapshot['type'];
+    }
+    else {
+      return "student";
+    }
   }
+
 }

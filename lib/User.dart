@@ -165,7 +165,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
               );
               break;
             case 1:
-            // Add logic to navigate to the storage page
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => VaultPage()),
+              );
+              break;
               break;
             case 2:
               Navigator.pushReplacement(
