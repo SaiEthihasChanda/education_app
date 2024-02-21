@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import 'User.dart';
 import 'vault.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
 import 'documentview.dart';
 
 
@@ -638,13 +639,24 @@ class home extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Recently Viewed',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'roboto',
-                      ),
+                    AnimatedTextKit(
+                      animatedTexts: [
+                        TypewriterAnimatedText(
+                          'Recently Viewed',
+                          textStyle: const TextStyle(
+                            fontSize: 18.0,
+                            fontFamily: 'roboto',
+                            fontWeight: FontWeight.bold
+
+                          ),
+                          speed: const Duration(milliseconds: 200),
+                        ),
+                      ],
+
+                      totalRepeatCount: 1,
+                      pause: const Duration(milliseconds: 100),
+                      displayFullTextOnTap: true,
+                      stopPauseOnTap: true,
                     ),
                     SizedBox(width: 16),
                   ],
@@ -681,13 +693,24 @@ class home extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                child: Text(
-                  'Popular',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'roboto',
-                  ),
+                child:AnimatedTextKit(
+                  animatedTexts: [
+                    TypewriterAnimatedText(
+                      'Popular',
+                      textStyle: const TextStyle(
+                        fontSize: 18.0,
+                        fontFamily: 'roboto',
+                        fontWeight: FontWeight.bold
+
+                      ),
+                      speed: const Duration(milliseconds: 500),
+                    ),
+                  ],
+
+                  totalRepeatCount: 1,
+                  pause: const Duration(milliseconds: 500),
+                  displayFullTextOnTap: true,
+                  stopPauseOnTap: true,
                 ),
               ),
               SizedBox(
@@ -776,6 +799,7 @@ class home extends StatelessWidget {
   }
 
   Widget _buildCardWidget({required String title, required String category, required String date, required int votes}) {
+
     return SizedBox(
       width: 200,
       child: Card(
@@ -792,22 +816,45 @@ class home extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'roboto',
-                    ),
-                    maxLines: 2,
+                  AnimatedTextKit(
+                    animatedTexts: [
+                      TypewriterAnimatedText(
+                        title.substring(0, title.length < 20 ? title.length : 20),
+                        textStyle: const TextStyle(
+                          fontSize: 18, // Adjust as needed based on lineHeight
+                          fontFamily: 'roboto',
+                          fontWeight: FontWeight.bold,
+                           // Experiment with smaller values (0.8-0.95)
+                          // maxLines: 2, // Optionally set max lines if font scaling isn't enough
+                          // softWrap: true, // Consider for line wrapping, but breaks typewriter effect
+                        ),
+                        speed: const Duration(milliseconds: 200),
+                      ),
+                    ],
+                    totalRepeatCount: 1,
+                    pause: const Duration(milliseconds: 100),
+                    displayFullTextOnTap: true,
+                    stopPauseOnTap: true,
                   ),
                   SizedBox(height: 8),
-                  Text(
-                    '$category'.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.green,
-                      fontFamily: 'roboto',
-                    ),
+                  AnimatedTextKit(
+                    animatedTexts: [
+                      TypewriterAnimatedText(
+                        category.toUpperCase(),
+                        textStyle: const TextStyle(
+                          fontSize: 14.0,
+                          fontFamily: 'roboto',
+                          color: Colors.green
+
+                        ),
+                        speed: const Duration(milliseconds:10 ),
+                      ),
+                    ],
+
+                    totalRepeatCount: 1,
+                    pause: const Duration(milliseconds: 10),
+                    displayFullTextOnTap: true,
+                    stopPauseOnTap: true,
                   ),
                 ],
               ),
@@ -1015,3 +1062,52 @@ Future<List<String>?> _readCredentials() async {
   return null; // Return null if file doesn't exist or is empty
 }
 
+class AnimatedRecentlyViewedText extends StatefulWidget {
+  final String text;
+
+  const AnimatedRecentlyViewedText({
+    Key? key,
+    required this.text,
+  }) : super(key: key);
+
+  @override
+  _AnimatedRecentlyViewedTextState createState() => _AnimatedRecentlyViewedTextState();
+}
+
+class _AnimatedRecentlyViewedTextState extends State<AnimatedRecentlyViewedText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 500), // Adjust the duration as needed
+      vsync: this,
+    );
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+    _controller.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _animation.value,
+      duration: Duration(milliseconds: 1000), // Adjust the duration as needed
+      child: Text(
+        widget.text,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'roboto',
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+}

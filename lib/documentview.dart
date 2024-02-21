@@ -182,7 +182,7 @@ class _DocumentViewState extends State<DocumentView> {
                   widget.category.toUpperCase(),
                   style: TextStyle(
                       fontSize: 16,
-                    color: Colors.green
+                      color: Colors.green
                   ),
                 ),
                 Text(
@@ -198,8 +198,8 @@ class _DocumentViewState extends State<DocumentView> {
                 // Uploaded by card
                 Expanded(
                   flex: 3,
-                  child: SizedBox( // Wrap in SizedBox and set height
-                    height: 98, // Adjust the height as needed
+                  child: SizedBox(
+                    height: 98,
                     child: Card(
                       elevation: 4,
                       child: Padding(
@@ -209,7 +209,7 @@ class _DocumentViewState extends State<DocumentView> {
                           children: [
                             CircleAvatar(
                               radius: 20,
-                              backgroundImage: NetworkImage(widget.pfp), // Placeholder image
+                              backgroundImage: NetworkImage(widget.pfp),
                             ),
                             SizedBox(width: 8),
                             Column(
@@ -248,7 +248,7 @@ class _DocumentViewState extends State<DocumentView> {
                         return Center(child: CircularProgressIndicator());
                       }
                       final likedDocuments = List<String>.from(snapshot.data?.get('liked') ?? []);
-                      final documentId = widget.id.endsWith('.pdf') ? widget.id.substring(0, widget.id.length - 4) : widget.id; // Remove ".pdf" extension if the document ID ends with ".pdf"
+                      final documentId = widget.id.endsWith('.pdf') ? widget.id.substring(0, widget.id.length - 4) : widget.id;
                       final isLiked = likedDocuments.contains(documentId);
                       return Card(
                         elevation: 4,
@@ -286,30 +286,40 @@ class _DocumentViewState extends State<DocumentView> {
               ],
             ),
             SizedBox(height: 20),
-            // Download button
-            ElevatedButton(
-              onPressed: isDownloaded ? null : downloadFile,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  isDownloaded
-                      ? Row(
+            // Download and View buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // View button
+                ElevatedButton(
+                  onPressed: () {
+                    // Implement view functionality
+                  },
+                  child: Row(
                     children: [
-                      Icon(Icons.check, color: Colors.white),
+                      Icon(Icons.remove_red_eye, color: Colors.white),
                       SizedBox(width: 8),
-                      Text('Downloaded', style: TextStyle(fontSize: 16)),
-                    ],
-                  )
-                      : Row(
-                    children: [
-                      Icon(Icons.download, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text('Download', style: TextStyle(fontSize: 16)),
+                      Text('View', style: TextStyle(fontSize: 16)),
                     ],
                   ),
-                ],
-              ),
+                ),
+                // Download button
+                ElevatedButton(
+                  onPressed: isDownloaded ? null : downloadFile,
+                  child: Row(
+                    children: [
+                      isDownloaded
+                          ? Icon(Icons.check, color: Colors.white)
+                          : Icon(Icons.download, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(isDownloaded ? 'Downloaded' : 'Download',
+                          style: TextStyle(fontSize: 16)),
+                    ],
+                  ),
+                ),
+              ],
             ),
+
             SizedBox(height: 20),
             Expanded(
               child: _buildDocumentWidget(),
@@ -319,6 +329,7 @@ class _DocumentViewState extends State<DocumentView> {
       ),
     );
   }
+
 
 
 

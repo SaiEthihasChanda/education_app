@@ -131,23 +131,42 @@ class _SearchWidgetState extends State<SearchWidget> {
         child: Column(
           children: [
             Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      labelText: 'Search',
-                      hintText: 'Enter search query',
-                      prefixIcon: Icon(Icons.search),
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 30.0), // Add padding here
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          labelText: 'Search',
+                          hintText: 'Enter search query',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _search,
-                  child: Text('Search'),
-                ),
-              ],
+                  SizedBox(width: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 30.0), // Adjust top padding as needed
+                    child: ElevatedButton(
+                      onPressed: _search,
+                      child: Text('Search'),
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                              (Set<MaterialState> states) {
+                            return Colors.white; // Set background color to white
+                          },
+                        ),
+                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0), // Adjust border radius as needed
+                            side: BorderSide(color: Colors.black), // Add black border
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ]
             ),
             SizedBox(height: 20),
             Expanded(
@@ -192,13 +211,13 @@ class _SearchWidgetState extends State<SearchWidget> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => DocumentView(
-                            title: title,
-                            contributor: contributor,
-                            category: category,
-                            date: date,
-                            id: docid,
-                            votes: votes,
-                            pfp:pfp
+                              title: title,
+                              contributor: contributor,
+                              category: category,
+                              date: date,
+                              id: docid,
+                              votes: votes,
+                              pfp:pfp
                           ),
                         ),
                       );
@@ -206,16 +225,19 @@ class _SearchWidgetState extends State<SearchWidget> {
 
                     child: Card(
                       elevation: 3,
-                      margin: EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 16),
+                      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      color: Colors.white, // Set background color to white
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0), // Add border radius
+                        side: BorderSide(color: Colors.black), // Add black border
+                      ),
                       child: Padding(
                         padding: EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Flexible(
                                   child: Text(
@@ -296,6 +318,7 @@ class _SearchWidgetState extends State<SearchWidget> {
                         ),
                       ),
                     ),
+
                   );
                 },
 
@@ -310,6 +333,7 @@ class _SearchWidgetState extends State<SearchWidget> {
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
+
 
   Widget _buildBottomNavigationBar() {
     if (_type == "contributor") {
