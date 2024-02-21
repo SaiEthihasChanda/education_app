@@ -222,14 +222,14 @@ class _VaultPageState extends State<VaultPage> {
                 // Handle navigation based on the tapped index
                 switch (index) {
                   case 0:
-                  // Add logic to navigate to the home page
-                    break;
-                  case 1:
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => home()),
 
                     );
+                    break;
+                  case 1:
+
                     break;
 
                   case 2:

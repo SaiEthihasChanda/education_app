@@ -541,7 +541,7 @@ class home extends StatelessWidget {
                       // Add logic to navigate to the home page
                         break;
                       case 1:
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => VaultPage()),
                         );
@@ -826,25 +826,12 @@ class home extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AnimatedTextKit(
-                    animatedTexts: [
-                      TypewriterAnimatedText(
-                        title.substring(0, title.length < 20 ? title.length : 20),
-                        textStyle: const TextStyle(
-                          fontSize: 18, // Adjust as needed based on lineHeight
-                          fontFamily: 'roboto',
-                          fontWeight: FontWeight.bold,
-                          // Experiment with smaller values (0.8-0.95)
-                          // maxLines: 2, // Optionally set max lines if font scaling isn't enough
-                          // softWrap: true, // Consider for line wrapping, but breaks typewriter effect
-                        ),
-                        speed: const Duration(milliseconds: 200),
-                      ),
-                    ],
-                    totalRepeatCount: 1,
-                    pause: const Duration(milliseconds: 100),
-                    displayFullTextOnTap: true,
-                    stopPauseOnTap: true,
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: "roboto",
+                      fontSize: 18
+                    ),
                   ),
                   SizedBox(height: 8),
                   AnimatedTextKit(
