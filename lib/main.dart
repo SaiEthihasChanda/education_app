@@ -383,13 +383,16 @@ class _SignUpPageState extends State<SignUpPage> {
 
 
     }catch(e){
+      setState(() {
+        loading = false;
+      });
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text("ERROR"),
             content: Text(
-                "An unexpected error has occured \n \n e"),
+                "An unexpected error has occured \n \n $e"),
             actions: <Widget>[
               TextButton(
                 child: Text("OK"),
