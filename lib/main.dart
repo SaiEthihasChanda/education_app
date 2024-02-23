@@ -171,6 +171,7 @@ class _SignUpPageState extends State<SignUpPage> {
   String _documentFileName = '';
   PlatformFile? pickedFile;
   String _userType = 'student';
+  bool loading = false;
 
   File? _profilePic;
   File? _idFile;
@@ -266,7 +267,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
 
 
-
+      setState(() {
+        loading = true;
+      });
       if (_idFile != null && _userType == 'contributor') {
         String scanned = "";
         final inputimage = ml.InputImage.fromFilePath(pickedFile!.path!);
@@ -291,10 +294,7 @@ class _SignUpPageState extends State<SignUpPage> {
             email: email,
             password: password,
           );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => home()),
-          );
+
           _saveCredentials(email, password);
           final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
           final userData = {
@@ -317,6 +317,38 @@ class _SignUpPageState extends State<SignUpPage> {
 
 
           await FirebaseStorage.instance.ref(profilePicPath).putFile(_profilePic!, metadata);
+          setState(() {
+            loading = false;
+          });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => home()),
+          );
+        }
+        else{
+          setState(() {
+            loading = false;
+          });
+
+          //dialogbox
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("Verification Failed"),
+                content: Text(
+                    "ReadIt was unable to verify your provided document. please try another picture if you think we are wrong"),
+                actions: <Widget>[
+                  TextButton(
+                    child: Text("OK"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
         }
       }
       else if(_userType == 'student') {
@@ -345,10 +377,30 @@ class _SignUpPageState extends State<SignUpPage> {
         await FirebaseStorage.instance.ref(profilePicPath).putFile(
             _profilePic!, metadata);
       }
+      setState(() {
+        loading = false;
+      });
 
 
     }catch(e){
-      print(e);
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("ERROR"),
+            content: Text(
+                "An unexpected error has occured \n \n e"),
+            actions: <Widget>[
+              TextButton(
+                child: Text("OK"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
     }
 
 
@@ -460,6 +512,9 @@ class _SignUpPageState extends State<SignUpPage> {
                 onPressed: _createAccount,
                 child: Text('Create Account'),
               ),
+              SizedBox(height: 20),
+              loading ? CircularProgressIndicator() : SizedBox(),
+              SizedBox(height: 20),
             ],
           ),
         ),
@@ -775,6 +830,7 @@ class home extends StatelessWidget {
             String category = snapshot.data!.get('category') ?? 'General';
             String date = snapshot.data!.get('date') ?? '';
             int votes = snapshot.data!.get('votes') ?? 0;
+            String docid = snapshot.data!.get('id')??'';
             return GestureDetector(
               onTap: () {
                 String contr = snapshot.data!.get('contributor') ?? '';
@@ -787,7 +843,7 @@ class home extends StatelessWidget {
                       contributor: contr,
                       category: category,
                       date: date,
-                      id: fileId,
+                      id: docid,
                       votes: votes,
                       pfp: pfp,
                     ),
@@ -983,7 +1039,7 @@ class home extends StatelessWidget {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('docs')
           .orderBy('votes', descending: true) // Sort documents by 'votes' field in descending order
-          .limit(10) // Limit the results to 10 documents, adjust as needed
+          .limit(100) // Limit the results to 10 documents, adjust as needed
           .get();
 
       List<String> popularFileIds = snapshot.docs.map((doc) => doc.id).toList();

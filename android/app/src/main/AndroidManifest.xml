@@ -16,7 +16,7 @@
 
 
     <application
-        android:label="test_flutter_1"
+        android:label="ReadIt"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
